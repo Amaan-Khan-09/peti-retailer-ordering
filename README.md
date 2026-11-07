@@ -2,21 +2,27 @@
 
 Peti is a take-home build for a distributor in Jabalpur that serves 1,800 kirana shops. "Peti" is what shopkeepers call a case.
 
-- **Retailers** order from their phones. They see their own prices, live stock and current schemes. The cart prices every scheme live, and they can repeat their last order in one tap.
-- **WhatsApp orders** in Hinglish or Devanagari are read by AI into a draft. The order desk checks the draft before anything becomes an order. Each line shows the shop's original words, a confidence level and two alternatives. Unclear units are asked about, not guessed. The desk's corrections are remembered for that shop.
-- **The order desk** confirms orders, clears credit holds, exports confirmed orders to Tally (XML or CSV), and sees which shops haven't ordered in 14 days.
+- **Retailers** order from low-end phones in Hindi or English. They see their own prices, live stock and schemes, and a "usual order" built from their own buying rhythm. The cart prices every scheme as they go.
+- **Salesmen** take orders at the counter **without signal**. Prices, schemes and credit for the day's beat are kept on the phone, and the same scheme engine runs there. Orders wait in an outbox and are sent, exactly once, when signal returns.
+- **WhatsApp orders** come in as texts, **Hindi voice notes** or **photos of handwritten lists**. AI reads them into a draft that the desk checks. Each line shows the shop's own words, a confidence level and two alternatives. Unclear units are asked about, not guessed, and nothing is ordered until a person confirms it. Desk corrections are remembered for that shop.
+- **The order desk** clears credit holds, exports to Tally (XML or CSV), prints van loading lists, sees shops with no order in 14 days, and tracks the client's three success targets.
 
-**Stack:** React, TypeScript, Vite and Tailwind · FastAPI, SQLAlchemy and Postgres (SQLite locally) · Groq `gpt-oss-120b` with a Gemini fallback and a rule-based reader · Docker on Render.
+**Stack:**
+- Frontend: React, TypeScript, Vite and Tailwind, as an installable app.
+- Backend: FastAPI, SQLAlchemy and Postgres (SQLite locally).
+- AI on Groq: `gpt-oss-120b` (reading orders), `whisper-large-v3` (voice notes) and `qwen3.8` (photos), with a Gemini fallback and a rule-based reader.
+- Docker on Render.
 
-- [`deployment.md`](deployment.md): how to run it, how it's deployed, and demo logins.
-- The Technical Design Document is submitted separately.
+See [`deployment.md`](deployment.md) for running it, how it's deployed, and demo logins. The Technical Design Document is submitted separately.
 
 ```
-backend/app/pricing.py          scheme engine: free goods and slab discounts (pure functions, fully tested)
-backend/app/capture/            AI order capture: text.py (parser), llm.py (model), matcher.py (SKU mapping), service.py
-backend/app/orders.py           stock reservation, credit holds, order states
-backend/app/tally.py            Tally XML / CSV export
-backend/tests/                  30 tests
-frontend/src/pages/retailer/    shop, cart, orders
-frontend/src/pages/desk/        overview, WhatsApp inbox, AI draft review, orders
+backend/app/pricing.py           scheme engine: free goods and slab discounts (pure functions)
+frontend/src/offline/pricing.ts  the same engine on the phone, checked against the same cases (tests/fixtures)
+backend/app/capture/             AI capture: text.py (parser), llm.py (reader), media.py (voice/photo), matcher.py, service.py
+backend/app/orders.py            stock reservation, credit holds, idempotent orders, WhatsApp updates (mocked)
+backend/app/suggest.py           usual-order suggestions from each shop's buying rhythm
+backend/app/tally.py             Tally XML / CSV export
+backend/app/routers/             auth, shop, salesman, desk (inbox, capture, loading list, metrics)
+frontend/src/offline/store.ts    salesman bundle and outbox (works offline, syncs once)
+frontend/src/pages/              retailer, salesman and desk screens
 ```
