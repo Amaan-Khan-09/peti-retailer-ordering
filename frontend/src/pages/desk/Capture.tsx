@@ -6,6 +6,7 @@ import { rupee, timeAgo } from "../../format";
 import type { Capture as CaptureData, CaptureLine, Order, Sku, Unit } from "../../types";
 import { Badge, Button, Card, ErrorState, Skeleton, Stepper, cx, useAsync, useToast } from "../../ui";
 import { Totals, useQuote } from "../retailer/Cart";
+import { MessageMedia, TranscriptForm } from "./Inbox";
 
 interface Decision { sku_id: number | null; qty: number | null; unit: Unit | null; removed: boolean }
 const LEVEL = { HIGH: { tone: "green", label: "High match" }, MEDIUM: { tone: "amber", label: "Check" }, LOW: { tone: "red", label: "Unsure" } } as const;
@@ -20,6 +21,7 @@ export default function Capture() {
   const [decisions, setDecisions] = useState<Record<number, Decision>>({});
   const [saving, setSaving] = useState(false);
   const [rereading, setRereading] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [result, setResult] = useState<{ order: Order; learned: string[] } | null>(null);
   const [error, setError] = useState<{ message: string; details: string[] } | null>(null);
 
@@ -93,9 +95,14 @@ export default function Capture() {
           <Card className="p-4">
             <p className="font-semibold">{c.message.retailer.shop_name}</p>
             <p className="text-xs text-muted">{c.message.retailer.code} · {c.message.retailer.area} · {timeAgo(c.message.received_at)}</p>
-            <p className="mt-3 rounded-2xl rounded-tl-sm bg-[#eef6ea] px-4 py-3 text-[15px] leading-relaxed">{c.message.text}</p>
+            <MessageMedia message={c.message} />
+            {c.message.kind !== "text" && <p className="mt-3 text-xs font-medium text-muted">Transcript{c.message.transcript_engine ? ` · ${c.message.transcript_engine}` : ""}</p>}
+            <p className="mt-1 rounded-2xl rounded-tl-sm bg-[#eef6ea] px-4 py-3 text-[15px] leading-relaxed whitespace-pre-line">{c.message.text}</p>
+            {c.message.kind !== "text" && c.status === "DRAFT" && (editing
+              ? <TranscriptForm message={c.message} onSaved={() => { setEditing(false); reread(); }} />
+              : <button onClick={() => setEditing(true)} className="mt-2 text-sm text-info underline">Fix the transcript</button>)}
             <p className="mt-3 flex items-center gap-1.5 text-xs text-muted"><Bot className="size-3.5" aria-hidden />
-              Read by {c.engine === "rules" ? "simple rules (no AI)" : c.engine}</p>
+              Order lines read by {c.engine === "rules" ? "simple rules (no AI)" : c.engine}</p>
           </Card>
           {c.warnings.map((w) => (
             <p key={w} className="flex gap-2 rounded-xl bg-warn-soft px-3 py-2 text-sm text-warn"><AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />{w}</p>

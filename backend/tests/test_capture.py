@@ -90,6 +90,13 @@ def test_skipped_lines_are_warned_about(monkeypatch):
     assert any("skipped" in w for w in warnings) and len(lines) == 3 and lines[1]["cap"] == "LOW"
 
 
+def test_a_heading_the_model_rightly_skipped_is_not_added_back(monkeypatch):
+    _read_with_model(monkeypatch, [{"raw_text": "glucose biscuit 200g - 4 peti", "item": "glucose biscuit", "qty": 4,
+                                    "unit": "case", "size": "200 g"}])
+    lines, _, warnings = service._read("Patel Provision - order, glucose biscuit 200g - 4 peti")
+    assert len(lines) == 1 and not warnings
+
+
 def test_rules_fill_in_what_the_model_lost(monkeypatch):
     _read_with_model(monkeypatch, [{"raw_text": "peti cream biscuit bada", "item": "large cream biscuit", "qty": None,
                                     "unit": "case", "size": None}])

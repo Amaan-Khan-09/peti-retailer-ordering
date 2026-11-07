@@ -77,7 +77,7 @@ def _read(text: str) -> tuple[list[dict], str, list[str]]:
                       "reasons": reasons, "cap": cap})
     # Anything the rules found that no model line covers is shown too, so a skipped item can't vanish.
     for i, p in enumerate(rule_lines):
-        if i not in used:
+        if i not in used and p.qty is not None:  # a product line has a number; a heading like "Patel - order" doesn't
             lines.append({"raw_text": p.raw_text, "phrase": p.phrase, "query": p.phrase, "qty": p.qty, "unit": p.unit,
                           "size_value": p.size_value, "size_label": p.size_label, "cap": "LOW",
                           "reasons": ["The AI skipped this part of the message; read by simple rules"]})
