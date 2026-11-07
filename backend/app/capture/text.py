@@ -71,9 +71,14 @@ class ParsedLine:
     size_label: str | None
 
 
+def words(text: str) -> set[str]:
+    """Bare words, punctuation dropped, so 'chhota,' and 'chhota' compare equal."""
+    return set(re.findall(r"\w+", basic_clean(text)))
+
+
 def unit_from_words(text: str) -> str | None:
-    words = set(basic_clean(text).split())
-    has_case, has_piece = bool(words & CASE_WORDS), bool(words & PIECE_WORDS)
+    found = words(text)
+    has_case, has_piece = bool(found & CASE_WORDS), bool(found & PIECE_WORDS)
     if has_case == has_piece:
         return None  # neither, or both: ask
     return "CASE" if has_case else "PIECE"

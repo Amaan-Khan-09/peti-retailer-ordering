@@ -11,7 +11,7 @@ from ..models import Alias, Capture, CaptureLine, InboundMessage, Order, OrderLi
 from ..orders import audit, place_order
 from .llm import read_order
 from .matcher import Candidate, build_candidate, match_line
-from .text import _size, basic_clean, canonical, parse_message, parse_segment, unit_from_words
+from .text import CASE_WORDS, PIECE_WORDS, _size, basic_clean, canonical, parse_message, parse_segment, unit_from_words, words
 
 
 def catalogue(db: Session) -> tuple[list[Candidate], dict[int, Sku]]:
@@ -29,6 +29,10 @@ def aliases(db: Session, retailer_id: int) -> dict[str, int]:
     return {a.phrase: a.sku_id for a in db.scalars(select(Alias).where(Alias.retailer_id == retailer_id))}
 
 
+def content_words(text: str) -> set[str]:
+    return {w for w in words(text) if not w.isdigit() and w not in CASE_WORDS | PIECE_WORDS}
+
+
 def _read(text: str) -> tuple[list[dict], str, list[str]]:
     """Lines as {raw_text, phrase, query, qty, unit, size_value, size_label, reasons, cap}."""
     rule_lines = parse_message(text)
@@ -41,15 +45,22 @@ def _read(text: str) -> tuple[list[dict], str, list[str]]:
                  "size_value": p.size_value, "size_label": p.size_label, "reasons": [], "cap": None}
                 for p in rule_lines], "rules", [warning]
 
-    message_words = set(basic_clean(text).split())
-    lines, warnings = [], []
+    message_words = words(text)
+    lines, warnings, used = [], [], set()
     for m in model_lines:
         reasons, cap = [], None
-        check = parse_segment(m["raw_text"])
-        if not set(basic_clean(m["raw_text"]).split()) <= message_words:
+        quoted = words(m["raw_text"])
+        if not quoted <= message_words:
             reasons.append("The AI quoted words that are not in the message")
             cap = "LOW"
-        unit = unit_from_words(m["raw_text"])  # the unit must be in the shop's words, never the model's guess
+        # Cross-check against the rule reading of the same part of the message, i.e. the shop's full words.
+        overlap, index = max(((len(content_words(m["raw_text"]) & content_words(r.raw_text)), i)
+                              for i, r in enumerate(rule_lines)), default=(0, None))
+        check = rule_lines[index] if overlap else parse_segment(m["raw_text"])
+        if overlap:
+            used.add(index)
+        shop_words = check.raw_text if check else m["raw_text"]
+        unit = unit_from_words(shop_words)  # the unit must be in the shop's words, never the model's guess
         if m["unit"] and unit is None:
             reasons.append("Unit is not written in the message; ask the shop")
         qty = m["qty"]
@@ -61,11 +72,16 @@ def _read(text: str) -> tuple[list[dict], str, list[str]]:
         if size_value is None and m["size"]:
             size_value, size_label, _ = _size(basic_clean(m["size"]))
         phrase = check.phrase if check else canonical(m["item"])
-        lines.append({"raw_text": m["raw_text"], "phrase": phrase, "query": f"{phrase} {canonical(m['item'])}",
+        lines.append({"raw_text": shop_words, "phrase": phrase, "query": f"{phrase} {canonical(m['item'])}",
                       "qty": qty, "unit": unit, "size_value": size_value, "size_label": size_label,
                       "reasons": reasons, "cap": cap})
-    if len(rule_lines) > len(model_lines):
-        warnings.append("The AI may have skipped part of the message. Compare the lines with the original below.")
+    # Anything the rules found that no model line covers is shown too, so a skipped item can't vanish.
+    for i, p in enumerate(rule_lines):
+        if i not in used:
+            lines.append({"raw_text": p.raw_text, "phrase": p.phrase, "query": p.phrase, "qty": p.qty, "unit": p.unit,
+                          "size_value": p.size_value, "size_label": p.size_label, "cap": "LOW",
+                          "reasons": ["The AI skipped this part of the message; read by simple rules"]})
+            warnings.append(f"The AI skipped “{p.raw_text}”. It is added below for you to check.")
     return lines, engine, warnings
 
 

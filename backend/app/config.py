@@ -27,7 +27,7 @@ class Settings:
         self.seed_on_start = os.getenv("SEED_ON_START", "true").lower() == "true"
         self.cookie_secure = os.getenv("COOKIE_SECURE", "false").lower() == "true"
         self.groq_api_key = os.getenv("GROQ_API_KEY", "")
-        self.groq_model = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+        self.groq_model = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
         self.gemini_api_key = os.getenv("GEMINI_API_KEY", "")
         self.gemini_model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
         self.cors_origins = [o for o in os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",") if o]

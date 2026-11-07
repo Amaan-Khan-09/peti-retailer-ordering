@@ -77,15 +77,24 @@ def test_model_quantity_is_checked_against_the_words(monkeypatch):
 def test_words_the_model_made_up_are_flagged(monkeypatch):
     _read_with_model(monkeypatch, [{"raw_text": "10 peti premium cookies", "item": "biscuit", "qty": 10,
                                     "unit": "case", "size": None}])
-    (line,), _, _ = service._read("5 peti biscuit chhota")
-    assert line["cap"] == "LOW"
+    lines, _, _ = service._read("5 peti biscuit chhota")
+    assert lines[0]["cap"] == "LOW" and "not in the message" in lines[0]["reasons"][0]
+    assert lines[1]["raw_text"] == "5 peti biscuit chhota"  # the real line still reaches the desk
 
 
 def test_skipped_lines_are_warned_about(monkeypatch):
     _read_with_model(monkeypatch, [{"raw_text": "5 peti biscuit chhota", "item": "small biscuit", "qty": 5,
                                     "unit": "case", "size": None}])
     _, _, warnings = service._read(SAMPLE)
-    assert any("skipped" in w for w in warnings)
+    lines, _, warnings = service._read(SAMPLE)
+    assert any("skipped" in w for w in warnings) and len(lines) == 3 and lines[1]["cap"] == "LOW"
+
+
+def test_rules_fill_in_what_the_model_lost(monkeypatch):
+    _read_with_model(monkeypatch, [{"raw_text": "peti cream biscuit bada", "item": "large cream biscuit", "qty": None,
+                                    "unit": "case", "size": None}])
+    (line,), _, warnings = service._read("bhai do peti cream biscuit bada")
+    assert (line["qty"], line["unit"]) == (2, "CASE") and not warnings
 
 
 def test_no_model_falls_back_to_rules_and_says_so(monkeypatch):
