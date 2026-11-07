@@ -11,6 +11,8 @@ def sku_ids(client, retailer_id=None):
 def test_sign_in_rejects_wrong_codes_and_hides_unknown_numbers(fresh_db):
     with TestClient(app) as client:
         assert client.post("/api/auth/otp", json={"phone": "9876543210"}).json() == {"sent": True, "demo_code": None}
+        unknown = client.post("/api/auth/verify", json={"phone": "9876543210", "code": "123456"})
+        assert unknown.status_code == 400 and "not right" in unknown.json()["detail"]  # same answer as a wrong code
         client.post("/api/auth/otp", json={"phone": "9000000101"})
         assert client.post("/api/auth/verify", json={"phone": "9000000101", "code": "000000"}).status_code == 400
         assert client.post("/api/auth/otp", json={"phone": "12345"}).status_code == 422

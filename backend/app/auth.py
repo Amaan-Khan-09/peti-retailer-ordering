@@ -40,7 +40,11 @@ def issue_otp(db: Session, phone: str) -> str | None:
 def verify_otp(db: Session, phone: str, code: str) -> User:
     otp = db.scalar(select(OtpCode).where(OtpCode.phone == phone, OtpCode.used.is_(False))
                     .order_by(OtpCode.created_at.desc()))
-    if not otp or otp.expires_at < utcnow() or otp.attempts >= MAX_ATTEMPTS:
+    if not otp:  # unknown numbers land here too, with the same answer as a wrong code
+        raise HTTPException(400, "That code is not right. Check the 6 digits, or request a new code.")
+    if otp.attempts >= MAX_ATTEMPTS:
+        raise HTTPException(400, "Too many wrong tries. Request a new code.")
+    if otp.expires_at < utcnow():
         raise HTTPException(400, "This code has expired. Request a new one.")
     otp.attempts += 1
     if not hmac.compare_digest(otp.code_hash, _hash(phone, code)):

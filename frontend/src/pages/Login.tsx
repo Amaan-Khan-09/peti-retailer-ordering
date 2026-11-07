@@ -86,6 +86,11 @@ export default function Login() {
                 Demo mode: SMS is mocked. Your code is <button type="button" className="num font-semibold underline" onClick={() => setCode(demoCode)}>{demoCode}</button> (tap to fill).
               </p>
             )}
+            {!demoCode && (
+              <p className="mt-4 rounded-xl bg-canvas px-4 py-3 text-sm text-muted">
+                In this demo, SMS is switched off and codes are shown only for the demo accounts listed below.
+              </p>
+            )}
             <label htmlFor="code" className="mt-6 block text-sm font-medium">6-digit code</label>
             <input id="code" autoFocus inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code}
               onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} className="num mt-2 h-12 w-full rounded-xl border border-line bg-surface px-4 text-center text-xl tracking-[0.5em] outline-none focus:border-accent" />
