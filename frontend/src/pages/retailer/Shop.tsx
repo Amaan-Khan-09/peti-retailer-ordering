@@ -91,23 +91,23 @@ function ProductRow({ sku }: { sku: Sku }) {
         <ProductTile category={sku.category} pack={sku.pack} />
         <div className="min-w-0 flex-1">
           <p className="font-semibold leading-snug">{sku.name}</p>
-          <p className="text-xs text-muted">{sku.brand.replace(/ \(.*\)/, "")} · {t("perCase")} = {sku.units_per_case} {t("pieces")}</p>
-          <p className="mt-1.5">
-            <span className="num font-semibold">{rupee(sku.case_price)}</span><span className="text-sm text-muted">/{t("perCase")}</span>
-            <span className="num ml-2 text-xs text-muted">{rupee(sku.price)}/{t("perPiece")} · {t("exclGst")}</span>
-          </p>
+          <p className="text-xs text-muted">{sku.brand.replace(/ \(.*\)/, "")} · 1 {t("perCase")} = {sku.units_per_case} {t("pieces")}</p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {sku.schemes.map((s) => <Badge key={s} tone="green"><Gift className="size-3" aria-hidden />{s}</Badge>)}
             {sku.stock_status === "LOW" && <Badge tone="amber">{t("lowStock", { n: sku.stock_cases })}</Badge>}
             {out && <Badge tone="red">{t("outOfStock")}</Badge>}
           </div>
-        </div>
-        <div className="flex shrink-0 items-end">
-          {out ? null : qty > 0 ? (
-            <Stepper value={qty} onChange={(v) => cart.set(sku.id, v)} max={sku.stock_cases} label={`${sku.name} ${t("cases")}`} />
-          ) : (
-            <Button variant="secondary" onClick={() => cart.set(sku.id, 1, "CASE")} aria-label={`${t("add")} ${sku.name}`}>{t("add")}</Button>
-          )}
+          <div className="mt-2 flex items-end justify-between gap-2">
+            <p className="leading-tight">
+              <span className="num font-semibold">{rupee(sku.case_price)}</span><span className="text-sm text-muted">/{t("perCase")}</span>
+              <span className="num block text-xs text-muted">{rupee(sku.price)}/{t("perPiece")} · {t("exclGst")}</span>
+            </p>
+            {out ? null : qty > 0 ? (
+              <Stepper value={qty} onChange={(v) => cart.set(sku.id, v)} max={sku.stock_cases} label={`${sku.name} ${t("cases")}`} />
+            ) : (
+              <Button variant="secondary" onClick={() => cart.set(sku.id, 1, "CASE")} aria-label={`${t("add")} ${sku.name}`}>{t("add")}</Button>
+            )}
+          </div>
         </div>
       </Card>
     </li>

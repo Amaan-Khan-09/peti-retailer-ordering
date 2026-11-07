@@ -74,10 +74,10 @@ export function ErrorState({ message, onRetry }: { message: string; onRetry?: ()
 export function Stepper({ value, onChange, min = 0, max = 9999, label }: { value: number; onChange: (v: number) => void; min?: number; max?: number; label: string }) {
   return (
     <div className="inline-flex h-11 items-center rounded-xl border border-line bg-surface" role="group" aria-label={label}>
-      <button type="button" className="h-full w-11 text-lg text-muted hover:text-ink disabled:text-line" onClick={() => onChange(Math.max(min, value - 1))} disabled={value <= min} aria-label="Less">−</button>
-      <input className="num h-full w-12 bg-transparent text-center font-semibold outline-none" inputMode="numeric" value={value} aria-label={label}
+      <button type="button" className="h-full w-10 text-lg text-muted hover:text-ink disabled:text-line" onClick={() => onChange(Math.max(min, value - 1))} disabled={value <= min} aria-label="Less">−</button>
+      <input className="num h-full w-11 bg-transparent text-center font-semibold outline-none" inputMode="numeric" value={value} aria-label={label}
         onChange={(e) => { const n = parseInt(e.target.value.replace(/\D/g, "") || "0", 10); onChange(Math.min(max, Math.max(min, n))); }} />
-      <button type="button" className="h-full w-11 text-lg text-muted hover:text-ink disabled:text-line" onClick={() => onChange(Math.min(max, value + 1))} disabled={value >= max} aria-label="More">+</button>
+      <button type="button" className="h-full w-10 text-lg text-muted hover:text-ink disabled:text-line" onClick={() => onChange(Math.min(max, value + 1))} disabled={value >= max} aria-label="More">+</button>
     </div>
   );
 }

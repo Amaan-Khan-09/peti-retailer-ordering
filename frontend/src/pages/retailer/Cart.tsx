@@ -36,7 +36,7 @@ export function Totals({ quote }: { quote: Quote }) {
     <dl className="num space-y-2 text-sm">
       <div className="flex justify-between"><dt className="text-muted">{t("subtotal")} ({t("exclGst")})</dt><dd>{rupee(quote.subtotal)}</dd></div>
       {quote.discount_total > 0 && <div className="flex justify-between text-accent"><dt>{t("schemeDiscount")}</dt><dd>−{rupee(quote.discount_total)}</dd></div>}
-      {quote.free_cases_total > 0 && <div className="flex justify-between text-accent"><dt>{t("free")}</dt><dd>{quote.free_cases_total} {t("cases")}</dd></div>}
+      {quote.free_cases_total > 0 && <div className="flex justify-between text-accent"><dt>{t("free")}</dt><dd>{quote.free_cases_total} {quote.free_cases_total === 1 ? t("perCase") : t("cases")}</dd></div>}
       <div className="flex justify-between"><dt className="text-muted">{t("gst")}</dt><dd>{rupee(quote.gst_total)}</dd></div>
       <div className="flex justify-between border-t border-line pt-3 text-base font-semibold"><dt>{t("total")}</dt><dd>{rupee(quote.total)}</dd></div>
     </dl>
@@ -144,17 +144,17 @@ function CartRow({ line }: { line: QuoteLine }) {
           </div>
           <p className="num font-semibold">{rupee(line.total)}</p>
         </div>
-        <div className="mt-3 flex flex-wrap items-center gap-3">
+        <div className="mt-3 flex items-center gap-2">
           <Stepper value={line.qty} onChange={(v) => cart.set(line.sku_id, v)} label={`${line.name} quantity`} />
           <div className="inline-flex h-11 rounded-xl border border-line p-1" role="radiogroup" aria-label="Unit">
             {(["CASE", "PIECE"] as Unit[]).map((u) => (
               <button key={u} role="radio" aria-checked={line.unit === u} onClick={() => cart.set(line.sku_id, line.qty, u)}
-                className={cx("rounded-lg px-3 text-sm font-medium", line.unit === u ? "bg-accent-soft text-accent" : "text-muted")}>
+                className={cx("rounded-lg px-2.5 text-sm font-medium", line.unit === u ? "bg-accent-soft text-accent" : "text-muted")}>
                 {u === "CASE" ? t("cases") : t("pieces")}
               </button>
             ))}
           </div>
-          <button onClick={() => cart.set(line.sku_id, 0)} className="ml-auto grid size-11 place-items-center rounded-xl text-muted hover:text-danger" aria-label={`${t("remove")} ${line.name}`}>
+          <button onClick={() => cart.set(line.sku_id, 0)} className="ml-auto grid size-10 shrink-0 place-items-center rounded-xl text-muted hover:text-danger" aria-label={`${t("remove")} ${line.name}`}>
             <Trash2 className="size-5" />
           </button>
         </div>
