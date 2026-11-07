@@ -85,7 +85,6 @@ def test_words_the_model_made_up_are_flagged(monkeypatch):
 def test_skipped_lines_are_warned_about(monkeypatch):
     _read_with_model(monkeypatch, [{"raw_text": "5 peti biscuit chhota", "item": "small biscuit", "qty": 5,
                                     "unit": "case", "size": None}])
-    _, _, warnings = service._read(SAMPLE)
     lines, _, warnings = service._read(SAMPLE)
     assert any("skipped" in w for w in warnings) and len(lines) == 3 and lines[1]["cap"] == "LOW"
 
