@@ -8,7 +8,8 @@ import { Button, Card } from "../ui";
 const DEMO = [
   { phone: "9000000101", who: "Retailer", detail: "Sharma Kirana Store · has special prices" },
   { phone: "9000000102", who: "Retailer", detail: "Gupta General Store · close to credit limit" },
-  { phone: "9000000001", who: "Order desk", detail: "WhatsApp inbox, AI capture, Tally export" },
+  { phone: "9000000201", who: "Salesman", detail: "Rakesh Tiwari · 10 shops, works without signal" },
+  { phone: "9000000001", who: "Order desk", detail: "WhatsApp text, voice and photo orders, Tally, van loading" },
 ];
 
 export default function Login() {
