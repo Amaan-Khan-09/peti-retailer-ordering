@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import JSON, Boolean, Date, DateTime, Float, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint
+from sqlalchemy import JSON, Boolean, Date, DateTime, Float, ForeignKey, Integer, LargeBinary, Numeric, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .db import Base, utcnow
@@ -18,6 +18,7 @@ class Retailer(Base):
     credit_limit: Mapped[Decimal] = mapped_column(Numeric(12, 2))
     # Outstanding comes from Tally (out of scope); open orders not yet exported are added on top.
     outstanding: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=Decimal("0"))
+    salesman_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", use_alter=True))  # the shop's beat
 
 
 class User(Base):
@@ -25,9 +26,9 @@ class User(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     phone: Mapped[str] = mapped_column(String(15), unique=True)
     name: Mapped[str] = mapped_column(String(120))
-    role: Mapped[str] = mapped_column(String(20))  # retailer | desk
+    role: Mapped[str] = mapped_column(String(20))  # retailer | salesman | desk
     retailer_id: Mapped[int | None] = mapped_column(ForeignKey("retailers.id"))
-    retailer: Mapped[Retailer | None] = relationship()
+    retailer: Mapped[Retailer | None] = relationship(foreign_keys=[retailer_id])
 
 
 class OtpCode(Base):
@@ -52,6 +53,7 @@ class Sku(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     code: Mapped[str] = mapped_column(String(20), unique=True)
     name: Mapped[str] = mapped_column(String(120))
+    name_hi: Mapped[str] = mapped_column(String(120), default="")
     brand_id: Mapped[int] = mapped_column(ForeignKey("brands.id"))
     category: Mapped[str] = mapped_column(String(40))
     line: Mapped[str] = mapped_column(String(60))  # product line without the size, e.g. "Glucose biscuit"
@@ -93,10 +95,13 @@ class Scheme(Base):
 
 class Order(Base):
     __tablename__ = "orders"
+    __table_args__ = (UniqueConstraint("retailer_id", "client_ref"),)
     id: Mapped[int] = mapped_column(primary_key=True)
     number: Mapped[str] = mapped_column(String(20), unique=True)
     retailer_id: Mapped[int] = mapped_column(ForeignKey("retailers.id"), index=True)
-    source: Mapped[str] = mapped_column(String(20))  # app | ai_capture | salesman
+    source: Mapped[str] = mapped_column(String(20))  # app | ai_capture | salesman | desk_entry (typed by the office)
+    # One key per cart submission: a retry on a flaky network returns the same order instead of a second one.
+    client_ref: Mapped[str | None] = mapped_column(String(40))
     status: Mapped[str] = mapped_column(String(20), index=True)  # PLACED | CREDIT_HOLD | CONFIRMED | EXPORTED | CANCELLED
     subtotal: Mapped[Decimal] = mapped_column(Numeric(12, 2))
     discount_total: Mapped[Decimal] = mapped_column(Numeric(12, 2))
@@ -111,6 +116,7 @@ class Order(Base):
     exported_at: Mapped[datetime | None] = mapped_column(DateTime)
     retailer: Mapped[Retailer] = relationship()
     lines: Mapped[list["OrderLine"]] = relationship(back_populates="order", cascade="all, delete-orphan")
+    messages: Mapped[list["OutboundMessage"]] = relationship(viewonly=True)
 
 
 class OrderLine(Base):
@@ -137,9 +143,13 @@ class InboundMessage(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     retailer_id: Mapped[int] = mapped_column(ForeignKey("retailers.id"))
     channel: Mapped[str] = mapped_column(String(20), default="whatsapp")
-    text: Mapped[str] = mapped_column(Text)
+    text: Mapped[str] = mapped_column(Text)  # for voice notes and photos: the transcript
+    kind: Mapped[str] = mapped_column(String(10), default="text")  # text | voice | photo
+    media_type: Mapped[str | None] = mapped_column(String(40))
+    media: Mapped[bytes | None] = mapped_column(LargeBinary, deferred=True)
+    transcript_engine: Mapped[str | None] = mapped_column(String(80))
     received_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
-    status: Mapped[str] = mapped_column(String(20), default="NEW")  # NEW | CAPTURED | ORDERED | DISMISSED
+    status: Mapped[str] = mapped_column(String(20), default="NEW")  # NEW | NEEDS_TEXT | CAPTURED | ORDERED | DISMISSED
     order_id: Mapped[int | None] = mapped_column(ForeignKey("orders.id"))
     retailer: Mapped[Retailer] = relationship()
 
@@ -153,6 +163,7 @@ class Capture(Base):
     status: Mapped[str] = mapped_column(String(20), default="DRAFT")  # DRAFT | CONFIRMED
     warnings: Mapped[list] = mapped_column(JSON, default=list)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    confirmed_at: Mapped[datetime | None] = mapped_column(DateTime)
     message: Mapped[InboundMessage] = relationship()
     lines: Mapped[list["CaptureLine"]] = relationship(back_populates="capture", cascade="all, delete-orphan",
                                                       order_by="CaptureLine.position")
@@ -173,6 +184,12 @@ class CaptureLine(Base):
     level: Mapped[str] = mapped_column(String(10), default="LOW")  # HIGH | MEDIUM | LOW
     alternatives: Mapped[list] = mapped_column(JSON, default=list)
     reasons: Mapped[list] = mapped_column(JSON, default=list)
+    # What the desk finally decided, kept to measure how often the AI needed correcting.
+    final_sku_id: Mapped[int | None] = mapped_column(ForeignKey("skus.id"))
+    final_qty: Mapped[int | None] = mapped_column(Integer)
+    final_unit: Mapped[str | None] = mapped_column(String(10))
+    removed: Mapped[bool] = mapped_column(Boolean, default=False)
+    corrected: Mapped[bool] = mapped_column(Boolean, default=False)
     capture: Mapped[Capture] = relationship(back_populates="lines")
 
 
@@ -193,4 +210,14 @@ class AuditEvent(Base):
     user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
     action: Mapped[str] = mapped_column(String(60))
     detail: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+
+class OutboundMessage(Base):
+    """WhatsApp updates to the shop. Sending is mocked: messages are stored and shown, not delivered."""
+    __tablename__ = "outbound_messages"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    retailer_id: Mapped[int] = mapped_column(ForeignKey("retailers.id"))
+    order_id: Mapped[int | None] = mapped_column(ForeignKey("orders.id"), index=True)
+    text: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)

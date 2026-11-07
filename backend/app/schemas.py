@@ -28,6 +28,12 @@ class QuoteRequest(BaseModel):
 class PlaceOrderRequest(BaseModel):
     lines: list[CartLine] = Field(min_length=1, max_length=100)
     note: str | None = Field(default=None, max_length=300)
+    retailer_id: int | None = None  # salesman only: the shop being visited
+    client_ref: str | None = Field(default=None, pattern=r"^[A-Za-z0-9-]{8,40}$")  # one per cart submission
+
+
+class MessageText(BaseModel):
+    text: str = Field(min_length=2, max_length=2000)
 
 
 class NewMessage(BaseModel):

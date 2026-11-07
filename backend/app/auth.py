@@ -86,3 +86,5 @@ def require_role(*roles: str):
 
 require_desk = require_role("desk")
 require_retailer = require_role("retailer")
+require_salesman = require_role("salesman")
+require_orderer = require_role("retailer", "salesman")
