@@ -1,25 +1,29 @@
 """Order desk: WhatsApp inbox, AI capture review, order actions, Tally export and the dashboard."""
-from datetime import timedelta
+from datetime import date, datetime, time, timedelta
+from statistics import median
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import Response
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from ..auth import require_desk
+from ..capture.media import MAX_BYTES, check_upload, transcribe
 from ..capture.service import confirm_capture, load_capture, run_capture
 from ..db import get_db, iso, utcnow
-from ..models import Capture, InboundMessage, Order, OrderLine, Retailer, Sku, User
+from ..models import Capture, CaptureLine, InboundMessage, Order, OrderLine, Retailer, Sku, User
 from ..orders import audit, exposure, f, load_order, order_json, set_status
-from ..schemas import ConfirmCapture, ExportRequest, NewMessage
+from ..schemas import ConfirmCapture, ExportRequest, MessageText, NewMessage
 from ..tally import to_csv, to_xml
 
 router = APIRouter(prefix="/api/desk", tags=["desk"], dependencies=[Depends(require_desk)])
+IST = timedelta(hours=5, minutes=30)
 
 
 def message_json(m: InboundMessage, capture_id: int | None = None) -> dict:
     return {"id": m.id, "text": m.text, "channel": m.channel, "status": m.status, "received_at": iso(m.received_at),
-            "order_id": m.order_id, "capture_id": capture_id,
+            "order_id": m.order_id, "capture_id": capture_id, "kind": m.kind, "has_media": m.media_type is not None,
+            "transcript_engine": m.transcript_engine,
             "retailer": {"id": m.retailer.id, "code": m.retailer.code, "shop_name": m.retailer.shop_name, "area": m.retailer.area}}
 
 
@@ -49,7 +53,7 @@ def retailers(db: Session = Depends(get_db)):
 
 
 @router.get("/messages")
-def messages(status: str | None = "NEW,CAPTURED", db: Session = Depends(get_db)):
+def messages(status: str | None = "NEW,NEEDS_TEXT,CAPTURED", db: Session = Depends(get_db)):
     stmt = select(InboundMessage).options(selectinload(InboundMessage.retailer)).order_by(InboundMessage.received_at.desc())
     if status:
         stmt = stmt.where(InboundMessage.status.in_(status.split(",")))
@@ -73,6 +77,49 @@ def add_message(body: NewMessage, user: User = Depends(require_desk), db: Sessio
     return message_json(message)
 
 
+@router.post("/messages/upload", status_code=201)
+def upload(retailer_id: int = Form(...), file: UploadFile = File(...), user: User = Depends(require_desk),
+           db: Session = Depends(get_db)):
+    """A voice note or a photo of a handwritten list, as forwarded from WhatsApp (the webhook is mocked)."""
+    data = file.file.read(MAX_BYTES + 1)
+    kind, media_type = check_upload(data)
+    if not db.get(Retailer, retailer_id):
+        raise HTTPException(404, "Retailer not found")
+    message = InboundMessage(retailer_id=retailer_id, text="", kind=kind, media_type=media_type, media=data)
+    db.add(message)
+    db.flush()
+    audit(db, user, "message.uploaded", f"message {message.id} ({kind}, {len(data)} bytes)")
+    db.commit()
+    db.refresh(message)
+    return message_json(message)
+
+
+@router.get("/messages/{message_id}/media")
+def media(message_id: int, db: Session = Depends(get_db)):
+    row = db.execute(select(InboundMessage.media, InboundMessage.media_type).where(InboundMessage.id == message_id)).first()
+    if not row or not row.media:
+        raise HTTPException(404, "No voice note or photo on this message")
+    return Response(row.media, media_type=row.media_type, headers={"Cache-Control": "private, max-age=3600"})
+
+
+@router.post("/messages/{message_id}/text")
+def set_transcript(message_id: int, body: MessageText, user: User = Depends(require_desk), db: Session = Depends(get_db)):
+    """The desk types or corrects the transcript of a voice note or photo. Typed messages stay as the shop wrote them."""
+    message = db.get(InboundMessage, message_id)
+    if not message:
+        raise HTTPException(404, "Message not found")
+    if message.kind == "text":
+        raise HTTPException(409, "A typed message is the shop's own words and can't be edited")
+    if message.status == "ORDERED":
+        raise HTTPException(409, "This message is already an order")
+    message.text, message.status = body.text.strip(), "NEW"
+    message.transcript_engine = ("typed by desk" if not message.transcript_engine
+                                 else f"{message.transcript_engine.split(',')[0]}, edited by desk")
+    audit(db, user, "message.transcript", str(message_id))
+    db.commit()
+    return message_json(message)
+
+
 @router.post("/messages/{message_id}/dismiss")
 def dismiss(message_id: int, user: User = Depends(require_desk), db: Session = Depends(get_db)):
     message = db.get(InboundMessage, message_id)
@@ -91,6 +138,15 @@ def capture(message_id: int, user: User = Depends(require_desk), db: Session = D
         raise HTTPException(404, "Message not found")
     if message.status == "ORDERED":
         raise HTTPException(409, "This message is already an order")
+    if message.kind != "text" and not message.text.strip():
+        data = db.scalar(select(InboundMessage.media).where(InboundMessage.id == message_id))
+        text, engine = transcribe(message.kind, data, message.media_type)
+        if not text:
+            message.status = "NEEDS_TEXT"
+            db.commit()
+            raise HTTPException(409, "Couldn't read this automatically. Open it, then type the order as you hear or see it.")
+        message.text, message.transcript_engine = text, engine
+        db.commit()
     existing = db.scalar(select(Capture).where(Capture.message_id == message_id, Capture.status == "DRAFT"))
     if existing:
         db.delete(existing)  # re-read replaces the old draft
@@ -147,6 +203,55 @@ def export(body: ExportRequest, user: User = Depends(require_desk), db: Session 
                                                         "X-Exported-Count": str(len(orders))})
 
 
+@router.get("/loading-list")
+def loading_list(day: date | None = None, db: Session = Depends(get_db)):
+    """What to load on each van: orders confirmed that day (IST), grouped by area, one van run per area."""
+    day = day or (utcnow() + IST).date()
+    start = datetime.combine(day, time()) - IST
+    orders = list(db.scalars(select(Order).where(
+        Order.status.in_(("CONFIRMED", "EXPORTED")), Order.confirmed_at >= start, Order.confirmed_at < start + timedelta(days=1))
+        .options(selectinload(Order.lines).selectinload(OrderLine.sku), selectinload(Order.retailer)).order_by(Order.number)))
+    routes: dict[str, dict] = {}
+    totals: dict[str, dict] = {}
+    for order in orders:
+        route = routes.setdefault(order.retailer.area, {"area": order.retailer.area, "orders": [], "items": {}})
+        route["orders"].append({"number": order.number, "shop_name": order.retailer.shop_name, "status": order.status,
+                                "cases": sum(l.qty for l in order.lines if l.unit == "CASE") + order.free_cases_total,
+                                "pieces": sum(l.qty for l in order.lines if l.unit == "PIECE"), "total": f(order.total)})
+        for line in order.lines:
+            for bucket in (route["items"], totals):
+                item = bucket.setdefault(line.sku.code, {"code": line.sku.code, "name": line.sku.name,
+                                                         "pack": line.sku.pack_label, "cases": 0, "free_cases": 0, "pieces": 0})
+                item["cases" if line.unit == "CASE" else "pieces"] += line.qty
+                item["free_cases"] += line.free_cases
+    out = []
+    for route in sorted(routes.values(), key=lambda r: r["area"]):
+        items = sorted(route["items"].values(), key=lambda i: i["code"])
+        out.append({**route, "items": items, "total_cases": sum(i["cases"] + i["free_cases"] for i in items)})
+    return {"date": day.isoformat(), "routes": out, "totals": sorted(totals.values(), key=lambda i: i["code"]),
+            "order_count": len(orders)}
+
+
+def _metrics(db: Session, since: datetime) -> dict:
+    """The brief's success targets, measured from what the app records."""
+    by_source = dict(db.execute(select(Order.source, func.count(Order.id)).where(
+        Order.created_at >= since, Order.status != "CANCELLED").group_by(Order.source)).all())
+    total = sum(by_source.values())
+    lines = db.scalars(select(CaptureLine.corrected).join(Capture).where(
+        Capture.status == "CONFIRMED", Capture.confirmed_at >= since)).all()
+    captures = db.execute(select(Capture.created_at, Capture.confirmed_at, InboundMessage.received_at).join(
+        InboundMessage, Capture.message_id == InboundMessage.id).where(
+        Capture.status == "CONFIRMED", Capture.confirmed_at >= since)).all()
+    return {
+        "orders_30d": total, "by_source": by_source, "digital_target": 50,
+        "digital_share": round(100 * (total - by_source.get("desk_entry", 0)) / total) if total else 0,
+        "ai_lines_checked": len(lines),
+        "ai_corrected_pct": round(100 * sum(lines) / len(lines), 1) if lines else None,
+        "median_desk_minutes": round(median((c.confirmed_at - c.created_at).total_seconds() / 60 for c in captures), 1) if captures else None,
+        "median_minutes_to_order": round(median((c.confirmed_at - c.received_at).total_seconds() / 60 for c in captures)) if captures else None,
+    }
+
+
 @router.get("/dashboard")
 def dashboard(db: Session = Depends(get_db)):
     now = utcnow()
@@ -171,8 +276,9 @@ def dashboard(db: Session = Depends(get_db)):
         "to_confirm": count(Order.status == "PLACED"),
         "credit_holds": count(Order.status == "CREDIT_HOLD"),
         "ready_for_tally": count(Order.status == "CONFIRMED"),
-        "new_messages": db.scalar(select(func.count(InboundMessage.id)).where(InboundMessage.status.in_(("NEW", "CAPTURED")))) or 0,
+        "new_messages": db.scalar(select(func.count(InboundMessage.id)).where(InboundMessage.status.in_(("NEW", "NEEDS_TEXT", "CAPTURED")))) or 0,
         "ai_share_week": round(100 * week_ai / week_total) if week_total else 0,
         "out_of_stock": [{"code": s.code, "name": s.name} for s in db.scalars(select(Sku).where(Sku.stock_cases <= 0))],
+        "metrics": _metrics(db, now - timedelta(days=30)),
         "quiet_retailers": quiet,
     }

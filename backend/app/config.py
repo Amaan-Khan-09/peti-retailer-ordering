@@ -28,6 +28,8 @@ class Settings:
         self.cookie_secure = os.getenv("COOKIE_SECURE", "false").lower() == "true"
         self.groq_api_key = os.getenv("GROQ_API_KEY", "")
         self.groq_model = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
+        self.groq_whisper_model = os.getenv("GROQ_WHISPER_MODEL", "whisper-large-v3")
+        self.groq_vision_model = os.getenv("GROQ_VISION_MODEL", "qwen/qwen3.8-27b")
         self.gemini_api_key = os.getenv("GEMINI_API_KEY", "")
         self.gemini_model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
         self.cors_origins = [o for o in os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",") if o]

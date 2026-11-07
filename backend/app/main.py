@@ -13,7 +13,7 @@ from sqlalchemy import select
 from .config import BACKEND_DIR, settings
 from .db import Base, SessionLocal, engine
 from .models import Sku
-from .routers import auth, desk, shop
+from .routers import auth, desk, salesman, shop
 from .seed import seed
 
 logging.basicConfig(level=logging.INFO)
@@ -47,7 +47,7 @@ async def security_headers(request: Request, call_next):
     return response
 
 
-for router in (auth.router, shop.router, desk.router):
+for router in (auth.router, shop.router, salesman.router, desk.router):
     app.include_router(router)
 
 

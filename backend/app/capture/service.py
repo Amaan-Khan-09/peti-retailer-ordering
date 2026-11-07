@@ -132,11 +132,15 @@ def confirm_capture(db: Session, capture: Capture, decisions: list, user: User) 
         if not line:
             raise HTTPException(404, f"Line {d.line_id} is not part of this draft")
         if d.removed:
+            line.removed = line.corrected = True
             continue
         if not d.sku_id or not d.qty or not d.unit:
             missing = "product" if not d.sku_id else "quantity" if not d.qty else "case or piece"
             raise HTTPException(422, f"“{line.raw_text}” still needs a {missing}")
         order_lines.append((d.sku_id, d.qty, d.unit))
+        line.final_sku_id, line.final_qty, line.final_unit = d.sku_id, d.qty, d.unit
+        # A correction is any change to what the AI proposed; filling in a unit it rightly left open is not.
+        line.corrected = d.sku_id != line.suggested_sku_id or d.qty != line.qty or (line.unit is not None and d.unit != line.unit)
         if d.sku_id != line.suggested_sku_id and line.phrase:
             alias = db.scalar(select(Alias).where(Alias.retailer_id == capture.retailer_id, Alias.phrase == line.phrase))
             if alias:
@@ -146,7 +150,7 @@ def confirm_capture(db: Session, capture: Capture, decisions: list, user: User) 
             learned.append(line.phrase)
     if not order_lines:
         raise HTTPException(422, "Keep at least one line to place an order")
-    capture.status = "CONFIRMED"
+    capture.status, capture.confirmed_at = "CONFIRMED", utcnow()
     capture.message.status = "ORDERED"
     order = place_order(db, capture.message.retailer, order_lines, "ai_capture", user, note=f"From WhatsApp message #{capture.message_id}")
     capture.message.order_id = order.id

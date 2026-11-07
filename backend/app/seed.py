@@ -12,7 +12,10 @@ from decimal import Decimal
 from sqlalchemy.orm import Session
 
 from .db import Base, SessionLocal, engine, utcnow
-from .models import Brand, InboundMessage, Order, OrderLine, Retailer, RetailerPrice, Scheme, Sku, User
+from pathlib import Path
+
+from .models import (Brand, Capture, CaptureLine, InboundMessage, Order, OrderLine, Retailer, RetailerPrice, Scheme, Sku,
+                     User)
 from .orders import item_for
 from .pricing import CASE, quote_order
 
@@ -38,6 +41,14 @@ SKUS = [
     ("SKU-SH-180", "Shampoo 180 ml", 3, "Personal care", "Shampoo", "180 ml", 180, 48, "95.00", 18, 30, "shampoo"),
     ("SKU-TP-150", "Toothpaste 150 g", 3, "Personal care", "Toothpaste", "150 g", 150, 72, "58.00", 18, 54, "toothpaste"),
 ]
+NAMES_HI = {
+    "SKU-BS-075": "ग्लूकोज़ बिस्कुट 75 ग्रा", "SKU-BS-200": "ग्लूकोज़ बिस्कुट 200 ग्रा", "SKU-CR-060": "क्रीम बिस्कुट 60 ग्रा",
+    "SKU-CR-150": "क्रीम बिस्कुट 150 ग्रा", "SKU-MR-100": "मैरी बिस्कुट 100 ग्रा", "SKU-SN-050": "नमकीन क्रैकर्स 50 ग्रा",
+    "SKU-DT-1KG": "डिटर्जेंट पाउडर 1 किलो", "SKU-DT-500": "डिटर्जेंट पाउडर 500 ग्रा", "SKU-DB-200": "डिटर्जेंट बार 200 ग्रा",
+    "SKU-DW-500": "बर्तन धोने का लिक्विड 500 मि.ली.", "SKU-FC-500": "फ़्लोर क्लीनर 500 मि.ली.", "SKU-TE-250": "चाय पत्ती 250 ग्रा",
+    "SKU-TE-500": "चाय पत्ती 500 ग्रा", "SKU-TE-1KG": "चाय पत्ती 1 किलो", "SKU-TD-100": "चाय डस्ट 100 ग्रा",
+    "SKU-SP-100": "नहाने का साबुन 100 ग्रा", "SKU-SH-180": "शैम्पू 180 मि.ली.", "SKU-TP-150": "टूथपेस्ट 150 ग्रा",
+}
 # sku code, kind, label, buy, free, min cases, discount %
 SCHEMES = [
     ("SKU-BS-075", "FREE_GOODS", "Buy 10 cases get 1 free", 10, 1, None, None),
@@ -81,6 +92,10 @@ MESSAGES = [
     (4, "5 पेटी बिस्कुट छोटा और 2 पेटी चाय पत्ती 500 वाला", 410),
 ]
 DESK_PHONE, RETAILER_PHONES = "9000000001", ["9000000101", "9000000102"]
+SALESMAN_PHONES = ["9000000201", "9000000202"]  # Rakesh covers the first 10 shops, Imran the next 10
+MEDIA = Path(__file__).parent / "sample_media"
+# (shop index, kind, file, minutes ago): a Hindi voice note and a photo of a handwritten list, as forwarded on WhatsApp
+MEDIA_MESSAGES = [(4, "voice", "voice_note.mp3", "audio/mpeg", 25), (2, "photo", "handwritten_list.jpg", "image/jpeg", 50)]
 
 
 def seed(db: Session) -> None:
@@ -90,7 +105,7 @@ def seed(db: Session) -> None:
     db.add_all(brands)
     skus = {}
     for code, name, brand, category, line, pack, size, upc, price, gst, stock, keywords in SKUS:
-        skus[code] = Sku(code=code, name=name, brand=brands[brand], category=category, line=line, pack_label=pack,
+        skus[code] = Sku(code=code, name=name, name_hi=NAMES_HI[code], brand=brands[brand], category=category, line=line, pack_label=pack,
                          size_value=size, units_per_case=upc, dealer_price=D(price), gst_rate=D(gst),
                          stock_cases=stock, keywords=keywords)
     db.add_all(skus.values())
@@ -115,7 +130,12 @@ def seed(db: Session) -> None:
         db.add(User(phone=phone, name=retailer.owner_name, role="retailer", retailer_id=retailer.id))
     for retailer in retailers[2:]:
         db.add(User(phone=retailer.phone, name=retailer.owner_name, role="retailer", retailer_id=retailer.id))
+    salesmen = [User(phone=SALESMAN_PHONES[0], name="Rakesh Tiwari", role="salesman"),
+                User(phone=SALESMAN_PHONES[1], name="Imran Qureshi", role="salesman")]
+    db.add_all(salesmen)
     db.flush()
+    for i, retailer in enumerate(retailers):
+        retailer.salesman_id = salesmen[0 if i < 10 else 1].id
 
     # Order history: deliveries already exported to Tally, plus a few open orders for the desk.
     number = 24000
@@ -132,12 +152,17 @@ def seed(db: Session) -> None:
             quote = quote_order(lines, today)
             created = utcnow() - timedelta(days=day, hours=rng.randint(1, 9))
             status = "EXPORTED" if day > 2 else "CONFIRMED" if day == 2 else "PLACED"
+            # Older orders were mostly typed by the office; digital orders grow over recent weeks.
+            digital = 0.75 if day <= 14 else 0.55 if day <= 30 else 0.3
+            source = rng.choice(["app", "salesman", "ai_capture"]) if rng.random() < digital else "desk_entry"
+            confirmed = (utcnow() - timedelta(hours=rng.randint(1, 3)) if status == "CONFIRMED"
+                         else created + timedelta(hours=2) if status == "EXPORTED" else None)
             number += 1
-            order = Order(number=f"ORD-{number}", retailer_id=retailer.id, source=rng.choice(["app", "salesman", "ai_capture"]),
+            order = Order(number=f"ORD-{number}", retailer_id=retailer.id, source=source,
                           status=status, subtotal=quote.subtotal, discount_total=quote.discount_total,
                           gst_total=quote.gst_total, total=quote.total, free_cases_total=quote.free_cases_total,
                           created_at=created, created_by_id=desk.id,
-                          confirmed_at=created if status != "PLACED" else None,
+                          confirmed_at=confirmed,
                           exported_at=created + timedelta(hours=20) if status == "EXPORTED" else None)
             sku_by_code = {s.code: s for s in skus.values()}
             for lq in quote.lines:
@@ -146,12 +171,37 @@ def seed(db: Session) -> None:
                                              unit_price=lq.unit_price, gross=lq.gross, discount=lq.discount,
                                              gst=lq.gst, total=lq.total, scheme_note="; ".join(lq.notes) or None))
             db.add(order)
+            if source == "ai_capture" and day <= 30:
+                _past_capture(db, rng, order, quote, sku_by_code, created)
             day += rng.randint(6, 12)
     db.flush()
 
     for index, text, minutes_ago in MESSAGES:
         db.add(InboundMessage(retailer_id=retailers[index].id, text=text, received_at=utcnow() - timedelta(minutes=minutes_ago)))
+    for index, kind, name, media_type, minutes_ago in MEDIA_MESSAGES:
+        db.add(InboundMessage(retailer_id=retailers[index].id, text="", kind=kind, media_type=media_type,
+                              media=(MEDIA / name).read_bytes(), received_at=utcnow() - timedelta(minutes=minutes_ago)))
     db.commit()
+
+
+def _past_capture(db: Session, rng: random.Random, order: Order, quote, sku_by_code: dict, created) -> None:
+    """History for the accuracy metric: an AI-read WhatsApp order the desk checked, with the odd correction."""
+    db.flush()
+    words = ", ".join(f"{l.qty} peti {sku_by_code[l.code].name.lower()}" for l in quote.lines)
+    message = InboundMessage(retailer_id=order.retailer_id, text=words, status="ORDERED", order_id=order.id,
+                             received_at=created - timedelta(minutes=rng.randint(4, 15)))
+    db.add(message)
+    db.flush()
+    capture = Capture(message_id=message.id, retailer_id=order.retailer_id, engine="groq:openai/gpt-oss-120b",
+                      status="CONFIRMED", warnings=[], created_at=created - timedelta(minutes=rng.randint(2, 4)),
+                      confirmed_at=created)
+    for position, l in enumerate(quote.lines):
+        sku = sku_by_code[l.code]
+        capture.lines.append(CaptureLine(
+            position=position, raw_text=f"{l.qty} peti {sku.name.lower()}", phrase=sku.line.lower(), qty=l.qty, unit="CASE",
+            suggested_sku_id=sku.id, confidence=0.9, level="HIGH", alternatives=[], reasons=["Sample history"],
+            final_sku_id=sku.id, final_qty=l.qty, final_unit="CASE", corrected=rng.random() < 0.05))
+    db.add(capture)
 
 
 def reset() -> None:
