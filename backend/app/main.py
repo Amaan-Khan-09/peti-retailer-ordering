@@ -5,6 +5,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import select
@@ -30,6 +31,7 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title="Peti — retailer ordering", lifespan=lifespan)
+app.add_middleware(GZipMiddleware, minimum_size=800)
 app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_credentials=True,
                    allow_methods=["*"], allow_headers=["*"])
 
@@ -40,6 +42,8 @@ async def security_headers(request: Request, call_next):
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("X-Frame-Options", "DENY")
     response.headers.setdefault("Referrer-Policy", "same-origin")
+    if request.url.path.startswith("/assets/"):  # file names carry a content hash, so they never change
+        response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
     return response
 
 

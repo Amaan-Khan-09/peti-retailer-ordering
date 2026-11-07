@@ -1,13 +1,18 @@
 import { Loader2 } from "lucide-react";
+import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { useAuth } from "./auth";
 import { CartProvider } from "./cart";
-import DeskLayout from "./pages/desk/DeskLayout";
-import Capture from "./pages/desk/Capture";
-import Dashboard from "./pages/desk/Dashboard";
-import DeskOrders from "./pages/desk/DeskOrders";
-import Inbox from "./pages/desk/Inbox";
 import Login from "./pages/Login";
+
+// Desk screens are loaded only for desk users, so a retailer's phone downloads the shop code alone.
+const DeskLayout = lazy(() => import("./pages/desk/DeskLayout"));
+const Dashboard = lazy(() => import("./pages/desk/Dashboard"));
+const Inbox = lazy(() => import("./pages/desk/Inbox"));
+const Capture = lazy(() => import("./pages/desk/Capture"));
+const DeskOrders = lazy(() => import("./pages/desk/DeskOrders"));
+
+const spinner = <div className="grid min-h-dvh place-items-center text-muted"><Loader2 className="size-6 animate-spin" aria-label="Loading" /></div>;
 import Cart from "./pages/retailer/Cart";
 import OrderDetail from "./pages/retailer/OrderDetail";
 import Orders from "./pages/retailer/Orders";
@@ -17,13 +22,14 @@ import Shop from "./pages/retailer/Shop";
 export default function App() {
   const { me, loading } = useAuth();
   if (loading) {
-    return <div className="grid min-h-dvh place-items-center text-muted"><Loader2 className="size-6 animate-spin" aria-label="Loading" /></div>;
+    return spinner;
   }
   if (!me) {
     return <Routes><Route path="*" element={<Login />} /></Routes>;
   }
   if (me.role === "desk") {
     return (
+      <Suspense fallback={spinner}>
       <Routes>
         <Route path="/desk" element={<DeskLayout />}>
           <Route index element={<Dashboard />} />
@@ -33,6 +39,7 @@ export default function App() {
         </Route>
         <Route path="*" element={<Navigate to="/desk" replace />} />
       </Routes>
+      </Suspense>
     );
   }
   return (
