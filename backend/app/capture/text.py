@@ -13,7 +13,16 @@ DEVANAGARI = {
     "वाला": "wala", "वाली": "wali", "और": "aur", "साबुन": "sabun", "पैकेट": "packet", "नग": "nag",
     "सर्फ": "surf", "डिटर्जेंट": "detergent", "मैरी": "marie", "क्रीम": "cream", "ग्लूकोज": "glucose",
     "भैया": "bhaiya", "भेज दो": "bhej do", "भेजो": "bhejo", "चाहिए": "chahiye", "ग्राम": "gram",
+    # spellings and words seen in Whisper transcripts of Hindi voice notes
+    "बिसकुट": "biscuit", "बिस्किट": "biscuit", "भाईया": "bhaiya", "भईया": "bhaiya", "भेज देना": "bhej dena",
+    "डब्बा": "dabba", "डब्बे": "dabba", "डिब्बा": "dabba", "डिब्बे": "dabba", "पेटियां": "peti", "पेटियाँ": "peti",
+    "केस": "case", "पीस": "piece", "लिक्विड": "liquid", "बर्तन": "bartan", "शैम्पू": "shampoo", "टूथपेस्ट": "toothpaste",
+    "नमकीन": "namkeen", "फिनाइल": "phenyl", "पाउडर": "powder", "वाशिंग पाउडर": "washing powder",
+    "एक": "ek", "दो": "do", "तीन": "teen", "चार": "char", "पाँच": "paanch", "पांच": "paanch", "छह": "chhe",
+    "सात": "saat", "आठ": "aath", "नौ": "nau", "दस": "das", "बीस": "bees",
 }
+_DEVANAGARI_RE = re.compile(
+    r"(?<![ऀ-ॿ])(" + "|".join(sorted(map(re.escape, DEVANAGARI), key=len, reverse=True)) + r")(?![ऀ-ॿ])")
 DEVANAGARI_DIGITS = str.maketrans("०१२३४५६७८९", "0123456789")
 
 # Multi-word phrases first; each maps to catalogue vocabulary.
@@ -35,7 +44,11 @@ NUMBER_WORDS = {"ek": 1, "do": 2, "teen": 3, "char": 4, "chaar": 4, "paanch": 5,
                 "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "ten": 10, "twelve": 12}
 CASE_WORDS = {"peti", "petti", "pety", "case", "cases", "carton", "cartons", "ctn", "ctns", "cs"}
 PIECE_WORDS = {"piece", "pieces", "pc", "pcs", "packet", "packets", "pkt", "pkts", "nag", "pouch", "pouches"}
+# Containers that don't say case or piece: the quantity is read, the unit is left for the desk to ask.
+UNCLEAR_UNITS = {"dabba", "dibba", "dabbe", "box", "boxes", "bag", "bori"}
+FILLER = {"wala", "wali", "wale", "vala", "waala"}
 UNIT_PATTERN = "|".join(sorted(CASE_WORDS | PIECE_WORDS, key=len, reverse=True))
+COUNTED_PATTERN = "|".join(sorted(CASE_WORDS | PIECE_WORDS | UNCLEAR_UNITS, key=len, reverse=True))
 SIZE_RE = re.compile(r"(\d+(?:\.\d+)?)\s*(kg|kilo|kgs|g|gm|gms|gram|grams|ml|l|ltr|litre|liter)\b")
 WALA_RE = re.compile(r"(\d+(?:\.\d+)?)\s*(wala|wali|vala|waala)\b")
 QTY_UNIT_RE = re.compile(rf"(\d+)\s*({UNIT_PATTERN})\b")
@@ -44,8 +57,7 @@ SPLIT_RE = re.compile(r"\n|,|;|\+|\band\b|\baur\b|और|\bor\b(?=\s+\d)", re.IG
 
 def basic_clean(text: str) -> str:
     text = text.translate(DEVANAGARI_DIGITS)
-    for word, roman in sorted(DEVANAGARI.items(), key=lambda kv: -len(kv[0])):
-        text = text.replace(word, f" {roman} ")
+    text = _DEVANAGARI_RE.sub(lambda m: f" {DEVANAGARI[m.group(1)]} ", text)  # whole words only: "दो" but not "दोनों"
     text = text.lower()
     text = re.sub(r"(\d)([a-z])", r"\1 \2", text)  # "5peti" -> "5 peti", "1kg" -> "1 kg"
     return re.sub(r"[^\w\s.,;+]", " ", text)
@@ -103,7 +115,7 @@ def parse_segment(segment: str) -> ParsedLine | None:
         return None
     # number words become digits only right before a unit word or at the start ("do" also means "give")
     for word, number in NUMBER_WORDS.items():
-        text = re.sub(rf"(^\s|\s){word}\s+(?=({UNIT_PATTERN})\b)", f" {number} ", text)
+        text = re.sub(rf"(^\s|\s){word}\s+(?=({COUNTED_PATTERN})\b)", f" {number} ", text)
         text = re.sub(rf"^\s{word}\s", f" {number} ", text)
     size_value, size_label, text = _size(text)
     qty, unit = None, None
@@ -117,7 +129,8 @@ def parse_segment(segment: str) -> ParsedLine | None:
         if number:
             qty = int(number.group(1))
             text = text[:number.start()] + " " + text[number.end():]
-    words = [w for w in text.split() if not w.isdigit() and w not in CASE_WORDS | PIECE_WORDS]
+    words = [w for w in re.findall(r"\w+", text)
+             if not w.isdigit() and w not in CASE_WORDS | PIECE_WORDS | UNCLEAR_UNITS | FILLER]
     phrase = " ".join(words)
     if not phrase:
         return None

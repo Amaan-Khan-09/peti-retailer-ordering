@@ -65,6 +65,10 @@ class LineQuote:
     notes: list[str] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
     hint: str | None = None
+    # Structured copies of the notes and hint, so the app can phrase them in Hindi or English.
+    discount_pct: Decimal = Decimal("0")
+    free_earned: int = 0
+    hint_data: dict | None = None
 
 
 @dataclass
@@ -96,18 +100,21 @@ def _free_cases(rules: list[SchemeRule], full_cases: int) -> tuple[int, SchemeRu
     return best, best_rule
 
 
-def _hint(rules: list[SchemeRule], full_cases: int, current_pct: Decimal) -> str | None:
+def _hint(rules: list[SchemeRule], full_cases: int, current_pct: Decimal) -> tuple[str, dict] | None:
     """The cheapest next step to a better deal, e.g. 'Add 1 more case to get 1 free'."""
     options = []
     for rule in rules:
         if rule.kind == "FREE_GOODS" and rule.buy_qty and rule.free_qty:
             need = rule.buy_qty - (full_cases % rule.buy_qty)
-            options.append((need, f"Add {need} more case{'s' if need > 1 else ''} to get {rule.free_qty} free"))
+            options.append((need, f"Add {need} more case{'s' if need > 1 else ''} to get {rule.free_qty} free",
+                            {"kind": "FREE_GOODS", "need": need, "free_qty": rule.free_qty}))
         elif rule.kind == "SLAB_DISCOUNT" and rule.min_cases and (rule.discount_pct or 0) > current_pct and full_cases < rule.min_cases:
             need = rule.min_cases - full_cases
-            options.append((need, f"Add {need} more case{'s' if need > 1 else ''} for {rule.discount_pct.normalize()}% off"))
-    options = [o for o in options if o[0] <= 5]
-    return min(options)[1] if options else None
+            pct = rule.discount_pct.normalize()
+            options.append((need, f"Add {need} more case{'s' if need > 1 else ''} for {pct}% off",
+                            {"kind": "SLAB_DISCOUNT", "need": need, "pct": float(pct)}))
+    options = sorted((o for o in options if o[0] <= 5), key=lambda o: o[0])
+    return (options[0][1], options[0][2]) if options else None
 
 
 def quote_line(item: Item, qty: int, unit: str, today: date) -> LineQuote:
@@ -134,6 +141,7 @@ def quote_line(item: Item, qty: int, unit: str, today: date) -> LineQuote:
     notes = [f"{slab.label}: {pct.normalize()}% off"] if slab else []
 
     free, free_rule = _free_cases(rules, full_cases)
+    earned = free
     if free:
         spare = max(item.stock_cases - reserved_cases, 0)
         if free > spare:
@@ -144,10 +152,12 @@ def quote_line(item: Item, qty: int, unit: str, today: date) -> LineQuote:
 
     taxable = gross - discount
     gst = money(taxable * item.gst_rate / 100)
+    hint = None if errors else _hint(rules, full_cases, pct)
     return LineQuote(
         code=item.code, unit=unit, qty=qty, pieces=pieces, full_cases=full_cases, reserved_cases=reserved_cases,
         free_cases=free, unit_price=item.unit_price, gross=gross, discount=discount, gst=gst, total=taxable + gst,
-        notes=notes, errors=errors, hint=None if errors else _hint(rules, full_cases, pct),
+        notes=notes, errors=errors, hint=hint[0] if hint else None, discount_pct=pct, free_earned=earned,
+        hint_data=hint[1] if hint else None,
     )
 
 
