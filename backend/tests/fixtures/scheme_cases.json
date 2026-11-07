@@ -1,0 +1,512 @@
+[
+ {
+  "name": "9 cases: one short of a free case",
+  "today": "2026-11-07",
+  "item": {
+   "code": "SKU-BS-075",
+   "units_per_case": 96,
+   "unit_price": 8.1,
+   "gst_rate": 18,
+   "stock_cases": 340,
+   "schemes": [
+    {
+     "kind": "FREE_GOODS",
+     "label": "Buy 10 cases get 1 free",
+     "buy_qty": 10,
+     "free_qty": 1
+    }
+   ]
+  },
+  "qty": 9,
+  "unit": "CASE",
+  "expect": {
+   "pieces": 864,
+   "full_cases": 9,
+   "reserved_cases": 9,
+   "free_cases": 0,
+   "free_earned": 0,
+   "gross": 6998.4,
+   "discount": 0.0,
+   "gst": 1259.71,
+   "total": 8258.11,
+   "errors": [],
+   "hint_data": {
+    "kind": "FREE_GOODS",
+    "need": 1,
+    "free_qty": 1
+   }
+  }
+ },
+ {
+  "name": "10 cases earn 1 free",
+  "today": "2026-11-07",
+  "item": {
+   "code": "SKU-BS-075",
+   "units_per_case": 96,
+   "unit_price": 8.1,
+   "gst_rate": 18,
+   "stock_cases": 340,
+   "schemes": [
+    {
+     "kind": "FREE_GOODS",
+     "label": "Buy 10 cases get 1 free",
+     "buy_qty": 10,
+     "free_qty": 1
+    }
+   ]
+  },
+  "qty": 10,
+  "unit": "CASE",
+  "expect": {
+   "pieces": 960,
+   "full_cases": 10,
+   "reserved_cases": 10,
+   "free_cases": 1,
+   "free_earned": 1,
+   "gross": 7776.0,
+   "discount": 0.0,
+   "gst": 1399.68,
+   "total": 9175.68,
+   "errors": [],
+   "hint_data": null
+  }
+ },
+ {
+  "name": "21 cases earn 2 free",
+  "today": "2026-11-07",
+  "item": {
+   "code": "SKU-BS-075",
+   "units_per_case": 96,
+   "unit_price": 8.1,
+   "gst_rate": 18,
+   "stock_cases": 340,
+   "schemes": [
+    {
+     "kind": "FREE_GOODS",
+     "label": "Buy 10 cases get 1 free",
+     "buy_qty": 10,
+     "free_qty": 1
+    }
+   ]
+  },
+  "qty": 21,
+  "unit": "CASE",
+  "expect": {
+   "pieces": 2016,
+   "full_cases": 21,
+   "reserved_cases": 21,
+   "free_cases": 2,
+   "free_earned": 2,
+   "gross": 16329.6,
+   "discount": 0.0,
+   "gst": 2939.33,
+   "total": 19268.93,
+   "errors": [],
+   "hint_data": null
+  }
+ },
+ {
+  "name": "free case capped by stock",
+  "today": "2026-11-07",
+  "item": {
+   "code": "SKU-BS-075",
+   "units_per_case": 96,
+   "unit_price": 8.1,
+   "gst_rate": 18,
+   "stock_cases": 10,
+   "schemes": [
+    {
+     "kind": "FREE_GOODS",
+     "label": "Buy 10 cases get 1 free",
+     "buy_qty": 10,
+     "free_qty": 1
+    }
+   ]
+  },
+  "qty": 10,
+  "unit": "CASE",
+  "expect": {
+   "pieces": 960,
+   "full_cases": 10,
+   "reserved_cases": 10,
+   "free_cases": 0,
+   "free_earned": 1,
+   "gross": 7776.0,
+   "discount": 0.0,
+   "gst": 1399.68,
+   "total": 9175.68,
+   "errors": [],
+   "hint_data": null
+  }
+ },
+ {
+  "name": "1000 pieces: 10 full cases, 11 reserved",
+  "today": "2026-11-07",
+  "item": {
+   "code": "SKU-BS-075",
+   "units_per_case": 96,
+   "unit_price": 8.1,
+   "gst_rate": 18,
+   "stock_cases": 340,
+   "schemes": [
+    {
+     "kind": "FREE_GOODS",
+     "label": "Buy 10 cases get 1 free",
+     "buy_qty": 10,
+     "free_qty": 1
+    }
+   ]
+  },
+  "qty": 1000,
+  "unit": "PIECE",
+  "expect": {
+   "pieces": 1000,
+   "full_cases": 10,
+   "reserved_cases": 11,
+   "free_cases": 1,
+   "free_earned": 1,
+   "gross": 8100.0,
+   "discount": 0.0,
+   "gst": 1458.0,
+   "total": 9558.0,
+   "errors": [],
+   "hint_data": null
+  }
+ },
+ {
+  "name": "4 cases: slab hint",
+  "today": "2026-11-07",
+  "item": {
+   "code": "SKU-DT-1KG",
+   "units_per_case": 20,
+   "unit_price": 101.5,
+   "gst_rate": 18,
+   "stock_cases": 85,
+   "schemes": [
+    {
+     "kind": "SLAB_DISCOUNT",
+     "label": "3% off 5 or more cases",
+     "min_cases": 5,
+     "discount_pct": 3
+    }
+   ]
+  },
+  "qty": 4,
+  "unit": "CASE",
+  "expect": {
+   "pieces": 80,
+   "full_cases": 4,
+   "reserved_cases": 4,
+   "free_cases": 0,
+   "free_earned": 0,
+   "gross": 8120.0,
+   "discount": 0.0,
+   "gst": 1461.6,
+   "total": 9581.6,
+   "errors": [],
+   "hint_data": {
+    "kind": "SLAB_DISCOUNT",
+    "need": 1,
+    "pct": 3.0
+   }
+  }
+ },
+ {
+  "name": "5 cases: 3% slab and GST",
+  "today": "2026-11-07",
+  "item": {
+   "code": "SKU-DT-1KG",
+   "units_per_case": 20,
+   "unit_price": 101.5,
+   "gst_rate": 18,
+   "stock_cases": 85,
+   "schemes": [
+    {
+     "kind": "SLAB_DISCOUNT",
+     "label": "3% off 5 or more cases",
+     "min_cases": 5,
+     "discount_pct": 3
+    }
+   ]
+  },
+  "qty": 5,
+  "unit": "CASE",
+  "expect": {
+   "pieces": 100,
+   "full_cases": 5,
+   "reserved_cases": 5,
+   "free_cases": 0,
+   "free_earned": 0,
+   "gross": 10150.0,
+   "discount": 304.5,
+   "gst": 1772.19,
+   "total": 11617.69,
+   "errors": [],
+   "hint_data": null
+  }
+ },
+ {
+  "name": "out of stock",
+  "today": "2026-11-07",
+  "item": {
+   "code": "SKU-DT-1KG",
+   "units_per_case": 20,
+   "unit_price": 101.5,
+   "gst_rate": 18,
+   "stock_cases": 0,
+   "schemes": [
+    {
+     "kind": "SLAB_DISCOUNT",
+     "label": "3% off 5 or more cases",
+     "min_cases": 5,
+     "discount_pct": 3
+    }
+   ]
+  },
+  "qty": 1,
+  "unit": "CASE",
+  "expect": {
+   "pieces": 20,
+   "full_cases": 1,
+   "reserved_cases": 1,
+   "free_cases": 0,
+   "free_earned": 0,
+   "gross": 2030.0,
+   "discount": 0.0,
+   "gst": 365.4,
+   "total": 2395.4,
+   "errors": [
+    "Out of stock"
+   ],
+   "hint_data": null
+  }
+ },
+ {
+  "name": "more than stock",
+  "today": "2026-11-07",
+  "item": {
+   "code": "SKU-DT-1KG",
+   "units_per_case": 20,
+   "unit_price": 101.5,
+   "gst_rate": 18,
+   "stock_cases": 85,
+   "schemes": [
+    {
+     "kind": "SLAB_DISCOUNT",
+     "label": "3% off 5 or more cases",
+     "min_cases": 5,
+     "discount_pct": 3
+    }
+   ]
+  },
+  "qty": 86,
+  "unit": "CASE",
+  "expect": {
+   "pieces": 1720,
+   "full_cases": 86,
+   "reserved_cases": 86,
+   "free_cases": 0,
+   "free_earned": 0,
+   "gross": 174580.0,
+   "discount": 5237.4,
+   "gst": 30481.67,
+   "total": 199824.27,
+   "errors": [
+    "Only 85 cases in stock"
+   ],
+   "hint_data": null
+  }
+ },
+ {
+  "name": "best of two slabs",
+  "today": "2026-11-07",
+  "item": {
+   "code": "SKU-TE-1KG",
+   "units_per_case": 12,
+   "unit_price": 440,
+   "gst_rate": 5,
+   "stock_cases": 22,
+   "schemes": [
+    {
+     "kind": "SLAB_DISCOUNT",
+     "label": "2% off 3+",
+     "min_cases": 3,
+     "discount_pct": 2
+    },
+    {
+     "kind": "SLAB_DISCOUNT",
+     "label": "4% off 6+",
+     "min_cases": 6,
+     "discount_pct": 4
+    }
+   ]
+  },
+  "qty": 6,
+  "unit": "CASE",
+  "expect": {
+   "pieces": 72,
+   "full_cases": 6,
+   "reserved_cases": 6,
+   "free_cases": 0,
+   "free_earned": 0,
+   "gross": 31680.0,
+   "discount": 1267.2,
+   "gst": 1520.64,
+   "total": 31933.44,
+   "errors": [],
+   "hint_data": null
+  }
+ },
+ {
+  "name": "lower slab only",
+  "today": "2026-11-07",
+  "item": {
+   "code": "SKU-TE-1KG",
+   "units_per_case": 12,
+   "unit_price": 440,
+   "gst_rate": 5,
+   "stock_cases": 22,
+   "schemes": [
+    {
+     "kind": "SLAB_DISCOUNT",
+     "label": "2% off 3+",
+     "min_cases": 3,
+     "discount_pct": 2
+    },
+    {
+     "kind": "SLAB_DISCOUNT",
+     "label": "4% off 6+",
+     "min_cases": 6,
+     "discount_pct": 4
+    }
+   ]
+  },
+  "qty": 3,
+  "unit": "CASE",
+  "expect": {
+   "pieces": 36,
+   "full_cases": 3,
+   "reserved_cases": 3,
+   "free_cases": 0,
+   "free_earned": 0,
+   "gross": 15840.0,
+   "discount": 316.8,
+   "gst": 776.16,
+   "total": 16299.36,
+   "errors": [],
+   "hint_data": {
+    "kind": "SLAB_DISCOUNT",
+    "need": 3,
+    "pct": 4.0
+   }
+  }
+ },
+ {
+  "name": "expired scheme ignored",
+  "today": "2026-11-07",
+  "item": {
+   "code": "SKU-BS-075",
+   "units_per_case": 96,
+   "unit_price": 8.1,
+   "gst_rate": 18,
+   "stock_cases": 340,
+   "schemes": [
+    {
+     "kind": "FREE_GOODS",
+     "label": "Buy 10 cases get 1 free",
+     "buy_qty": 10,
+     "free_qty": 1,
+     "valid_to": "2026-11-06"
+    }
+   ]
+  },
+  "qty": 10,
+  "unit": "CASE",
+  "expect": {
+   "pieces": 960,
+   "full_cases": 10,
+   "reserved_cases": 10,
+   "free_cases": 0,
+   "free_earned": 0,
+   "gross": 7776.0,
+   "discount": 0.0,
+   "gst": 1399.68,
+   "total": 9175.68,
+   "errors": [],
+   "hint_data": null
+  }
+ },
+ {
+  "name": "paused scheme ignored",
+  "today": "2026-11-07",
+  "item": {
+   "code": "SKU-BS-075",
+   "units_per_case": 96,
+   "unit_price": 8.1,
+   "gst_rate": 18,
+   "stock_cases": 340,
+   "schemes": [
+    {
+     "kind": "FREE_GOODS",
+     "label": "Buy 10 cases get 1 free",
+     "buy_qty": 10,
+     "free_qty": 1,
+     "active": false
+    }
+   ]
+  },
+  "qty": 10,
+  "unit": "CASE",
+  "expect": {
+   "pieces": 960,
+   "full_cases": 10,
+   "reserved_cases": 10,
+   "free_cases": 0,
+   "free_earned": 0,
+   "gross": 7776.0,
+   "discount": 0.0,
+   "gst": 1399.68,
+   "total": 9175.68,
+   "errors": [],
+   "hint_data": null
+  }
+ },
+ {
+  "name": "special price per shop",
+  "today": "2026-11-07",
+  "item": {
+   "code": "SKU-BS-075",
+   "units_per_case": 96,
+   "unit_price": 8.0,
+   "gst_rate": 18,
+   "stock_cases": 340,
+   "schemes": [
+    {
+     "kind": "FREE_GOODS",
+     "label": "Buy 10 cases get 1 free",
+     "buy_qty": 10,
+     "free_qty": 1
+    }
+   ]
+  },
+  "qty": 7,
+  "unit": "CASE",
+  "expect": {
+   "pieces": 672,
+   "full_cases": 7,
+   "reserved_cases": 7,
+   "free_cases": 0,
+   "free_earned": 0,
+   "gross": 5376.0,
+   "discount": 0.0,
+   "gst": 967.68,
+   "total": 6343.68,
+   "errors": [],
+   "hint_data": {
+    "kind": "FREE_GOODS",
+    "need": 3,
+    "free_qty": 1
+   }
+  }
+ }
+]
