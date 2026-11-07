@@ -1,13 +1,13 @@
 import { ChevronRight, ClipboardList } from "lucide-react";
 import { Link } from "react-router-dom";
 import { api } from "../../api";
-import { dateTime, rupee, SOURCE_LABEL, STATUS_LABEL } from "../../format";
+import { dateTime, rupee, SOURCE_LABEL } from "../../format";
 import { useLang } from "../../i18n";
 import type { Order } from "../../types";
 import { Badge, Button, Card, EmptyState, ErrorState, Skeleton, STATUS_TONE, useAsync } from "../../ui";
 
 export default function Orders() {
-  const { t } = useLang();
+  const { t, status } = useLang();
   const orders = useAsync(() => api.get<Order[]>("/api/orders"));
   if (orders.error) return <ErrorState message={orders.error} onRetry={orders.reload} />;
   return (
@@ -24,7 +24,7 @@ export default function Orders() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <p className="num font-semibold">{o.number}</p>
-                      <Badge tone={STATUS_TONE[o.status]}>{STATUS_LABEL[o.status]}</Badge>
+                      <Badge tone={STATUS_TONE[o.status]}>{status(o.status)}</Badge>
                     </div>
                     <p className="mt-1 text-sm text-muted">{dateTime(o.created_at)} · {o.line_count} {t("items")} · {SOURCE_LABEL[o.source]}</p>
                   </div>

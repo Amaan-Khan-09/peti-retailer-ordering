@@ -20,4 +20,4 @@ export const STATUS_LABEL: Record<string, string> = {
   PLACED: "To confirm", CREDIT_HOLD: "Credit hold", CONFIRMED: "Confirmed", EXPORTED: "Sent to Tally", CANCELLED: "Cancelled",
 };
 
-export const SOURCE_LABEL: Record<string, string> = { app: "App", ai_capture: "WhatsApp (AI)", salesman: "Salesman" };
+export const SOURCE_LABEL: Record<string, string> = { app: "App", ai_capture: "WhatsApp (AI)", salesman: "Salesman", desk_entry: "Typed by desk" };
