@@ -106,6 +106,11 @@ export default function Inbox() {
                         <Button variant="ghost" onClick={() => dismiss(m)} aria-label="Dismiss message"><X className="size-4" /></Button>
                       </div>
                     )}
+                    {reading === m.id && (
+                      <p className="mt-2 text-xs text-muted" role="status">
+                        {m.kind === "text" ? "Reading the order…" : "Transcribing, then reading the order…"} If the AI service is busy, this can take up to 30 seconds.
+                      </p>
+                    )}
                   </Card>
                 </li>
               );

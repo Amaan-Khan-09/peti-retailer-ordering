@@ -119,7 +119,7 @@ def _fake_groq(monkeypatch, *responses):
 def test_groq_rate_limit_waits_as_asked_then_retries_once(monkeypatch):
     llm, calls, waits = _fake_groq(monkeypatch, (429, {"retry-after": "3"}), (200, {}))
     assert llm.groq_post("chat/completions", json={}).json() == {"ok": True}
-    assert waits == [3.0] and len(calls) == 2
+    assert waits == [3.0 + llm.MARGIN] and len(calls) == 2
 
 
 def test_groq_long_wait_is_not_attempted_so_the_desk_falls_back_quickly(monkeypatch):

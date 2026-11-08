@@ -9,20 +9,21 @@ from ..config import settings
 
 log = logging.getLogger(__name__)
 TIMEOUT = 20
-MAX_WAIT = 20  # seconds the desk will wait for Groq's per-minute limit to free up before falling back
+MAX_WAIT = 25  # seconds the desk will wait for Groq's per-minute limit to free up before falling back
+MARGIN = 5  # Groq's retry-after is the earliest moment; the token bucket needs a little longer to fit a photo
 
 
 def groq_post(path: str, **kwargs) -> httpx.Response:
-    """POST to Groq. If the per-minute token limit is hit (429) or Groq has a blip (5xx), wait as long as Groq asks,
-    up to MAX_WAIT, and try once more; otherwise the caller falls back (rules, or the desk types the order)."""
+    """POST to Groq. If the per-minute token limit is hit (429) or Groq has a blip (5xx), wait as long as Groq asks plus
+    a margin, up to MAX_WAIT, and try once more; otherwise the caller falls back (rules, or the desk types the order)."""
     url = f"https://api.groq.com/openai/v1/{path}"
     headers = {"Authorization": f"Bearer {settings.groq_api_key}"}
     response = httpx.post(url, headers=headers, **kwargs)
     if response.status_code == 429 or response.status_code >= 500:
         try:
-            wait = float(response.headers.get("retry-after", "2"))
+            wait = float(response.headers.get("retry-after", "0")) + MARGIN
         except ValueError:
-            wait = 2.0
+            wait = float(MARGIN)
         if wait <= MAX_WAIT:
             log.warning("Groq returned %s; retrying in %.0f s", response.status_code, wait)
             time.sleep(wait)
