@@ -1,6 +1,7 @@
 """Reads an order message with an LLM (Groq first, then Gemini). Returns None when no model is usable."""
 import json
 import logging
+import time
 
 import httpx
 
@@ -8,6 +9,26 @@ from ..config import settings
 
 log = logging.getLogger(__name__)
 TIMEOUT = 20
+MAX_WAIT = 20  # seconds the desk will wait for Groq's per-minute limit to free up before falling back
+
+
+def groq_post(path: str, **kwargs) -> httpx.Response:
+    """POST to Groq. If the per-minute token limit is hit (429) or Groq has a blip (5xx), wait as long as Groq asks,
+    up to MAX_WAIT, and try once more; otherwise the caller falls back (rules, or the desk types the order)."""
+    url = f"https://api.groq.com/openai/v1/{path}"
+    headers = {"Authorization": f"Bearer {settings.groq_api_key}"}
+    response = httpx.post(url, headers=headers, **kwargs)
+    if response.status_code == 429 or response.status_code >= 500:
+        try:
+            wait = float(response.headers.get("retry-after", "2"))
+        except ValueError:
+            wait = 2.0
+        if wait <= MAX_WAIT:
+            log.warning("Groq returned %s; retrying in %.0f s", response.status_code, wait)
+            time.sleep(wait)
+            response = httpx.post(url, headers=headers, **kwargs)
+    response.raise_for_status()
+    return response
 
 SYSTEM = """You read orders that kirana shop owners send to an FMCG distributor on WhatsApp.
 Messages mix Hindi (often in English letters), Devanagari and English.
@@ -47,14 +68,11 @@ def _parse(content: str) -> list[dict] | None:
 
 
 def _groq(message: str) -> list[dict] | None:
-    response = httpx.post(
-        "https://api.groq.com/openai/v1/chat/completions",
-        headers={"Authorization": f"Bearer {settings.groq_api_key}"},
-        json={"model": settings.groq_model, "temperature": 0, "response_format": {"type": "json_object"},
-              "messages": [{"role": "system", "content": SYSTEM}, {"role": "user", "content": message}]},
-        timeout=TIMEOUT,
-    )
-    response.raise_for_status()
+    # Groq counts the reply cap against the per-minute limit, so cap it near what an order needs.
+    response = groq_post("chat/completions", timeout=TIMEOUT, json={
+        "model": settings.groq_model, "temperature": 0, "response_format": {"type": "json_object"},
+        "reasoning_effort": "low", "max_completion_tokens": 2000,
+        "messages": [{"role": "system", "content": SYSTEM}, {"role": "user", "content": message}]})
     return _parse(response.json()["choices"][0]["message"]["content"])
 
 

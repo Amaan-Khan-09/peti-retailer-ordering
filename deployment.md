@@ -1,7 +1,7 @@
 # Peti: deployment and demo guide
 
 - **Repository:** https://github.com/Amaan-Khan-09/peti-retailer-ordering
-- **Live app:** LIVE_URL_PLACEHOLDER
+- **Live app:** https://peti-gtd5.onrender.com (free plan: the first visit after 15 idle minutes takes about a minute to wake up)
 
 ## Demo login details
 
@@ -67,7 +67,7 @@ npm run dev
 Open http://localhost:5173 and use the demo numbers above. To run everything on one port instead, use `npm run build` in `frontend/`; then `uvicorn` serves the built app at http://localhost:8000.
 
 **Tests**
-- Backend, 41 tests: `cd backend && python -m pytest -q`. They cover the scheme engine, the message parser and matcher, the checks on the AI's output, voice and photo handling, access control by role, stock, credit, idempotent orders, suggestions, the loading list and the metrics. They run on SQLite by default; to run the same tests on Postgres, set `TEST_DATABASE_URL` to an empty Postgres database.
+- Backend, 43 tests: `cd backend && python -m pytest -q`. They cover the scheme engine, the message parser and matcher, the checks on the AI's output, voice and photo handling, waiting out the AI provider's rate limit, access control by role, stock, credit, idempotent orders, suggestions, the loading list and the metrics. They run on SQLite by default; to run the same tests on Postgres, set `TEST_DATABASE_URL` to an empty Postgres database.
 - Frontend, 15 tests: `cd frontend && npm test`. The phone's offline scheme engine is checked against the same case file as the server engine.
 
 Without an AI key, text messages are read by the rule-based reader, and the screen says so. Voice notes and photos show a "type the order" box instead. Everything else works the same.

@@ -10,6 +10,7 @@ import httpx
 from fastapi import HTTPException
 
 from ..config import settings
+from .llm import groq_post
 
 log = logging.getLogger(__name__)
 MAX_BYTES = 5 * 1024 * 1024
@@ -52,27 +53,21 @@ def check_upload(data: bytes) -> tuple[str, str]:
 
 def _voice(data: bytes, media_type: str) -> str:
     extension = {"audio/mpeg": "mp3", "audio/ogg": "ogg", "audio/wav": "wav", "audio/mp4": "m4a", "audio/webm": "webm"}
-    response = httpx.post(
-        "https://api.groq.com/openai/v1/audio/transcriptions",
-        headers={"Authorization": f"Bearer {settings.groq_api_key}"},
+    response = groq_post(
+        "audio/transcriptions", timeout=TIMEOUT,
         files={"file": (f"note.{extension.get(media_type, 'mp3')}", data, media_type)},
         data={"model": settings.groq_whisper_model, "language": "hi", "temperature": "0", "response_format": "json"},
-        timeout=TIMEOUT,
     )
-    response.raise_for_status()
     return response.json()["text"].strip()
 
 
 def _photo_groq(data: bytes, media_type: str) -> str:
     image = f"data:{media_type};base64,{base64.b64encode(data).decode()}"
-    response = httpx.post(
-        "https://api.groq.com/openai/v1/chat/completions",
-        headers={"Authorization": f"Bearer {settings.groq_api_key}"},
-        json={"model": settings.groq_vision_model, "temperature": 0, "messages": [{"role": "user", "content": [
-            {"type": "text", "text": PHOTO_PROMPT}, {"type": "image_url", "image_url": {"url": image}}]}]},
-        timeout=TIMEOUT,
-    )
-    response.raise_for_status()
+    # A list is short; capping the reply keeps each photo well inside the per-minute token limit.
+    response = groq_post("chat/completions", timeout=TIMEOUT, json={
+        "model": settings.groq_vision_model, "temperature": 0, "max_completion_tokens": 700,
+        "messages": [{"role": "user", "content": [
+            {"type": "text", "text": PHOTO_PROMPT}, {"type": "image_url", "image_url": {"url": image}}]}]})
     return response.json()["choices"][0]["message"]["content"].strip()
 
 

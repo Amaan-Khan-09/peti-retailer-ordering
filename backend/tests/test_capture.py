@@ -1,3 +1,6 @@
+import httpx
+import pytest
+
 from app.capture import service
 from app.capture.matcher import build_candidate, match_line
 from app.capture.text import parse_message
@@ -101,6 +104,29 @@ def test_rules_fill_in_what_the_model_lost(monkeypatch):
                                     "unit": "case", "size": None}])
     (line,), _, warnings = service._read("bhai do peti cream biscuit bada")
     assert (line["qty"], line["unit"]) == (2, "CASE") and not warnings
+
+
+def _fake_groq(monkeypatch, *responses):
+    from app.capture import llm
+    calls, waits = [], []
+    queue = [httpx.Response(status, headers=headers, json={"ok": True}, request=httpx.Request("POST", "https://groq.test"))
+             for status, headers in responses]
+    monkeypatch.setattr(llm.httpx, "post", lambda *args, **kwargs: calls.append(args) or queue.pop(0))
+    monkeypatch.setattr(llm.time, "sleep", waits.append)
+    return llm, calls, waits
+
+
+def test_groq_rate_limit_waits_as_asked_then_retries_once(monkeypatch):
+    llm, calls, waits = _fake_groq(monkeypatch, (429, {"retry-after": "3"}), (200, {}))
+    assert llm.groq_post("chat/completions", json={}).json() == {"ok": True}
+    assert waits == [3.0] and len(calls) == 2
+
+
+def test_groq_long_wait_is_not_attempted_so_the_desk_falls_back_quickly(monkeypatch):
+    llm, calls, waits = _fake_groq(monkeypatch, (429, {"retry-after": "60"}))
+    with pytest.raises(httpx.HTTPStatusError):
+        llm.groq_post("chat/completions", json={})
+    assert waits == [] and len(calls) == 1
 
 
 def test_no_model_falls_back_to_rules_and_says_so(monkeypatch):
