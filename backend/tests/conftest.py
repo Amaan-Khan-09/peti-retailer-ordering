@@ -5,8 +5,9 @@ import pytest
 
 _db = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
 _db.close()
-os.environ.update(DATABASE_URL=f"sqlite:///{_db.name}", GROQ_API_KEY="", GEMINI_API_KEY="", DEMO_MODE="true",
-                  SEED_ON_START="false")
+# SQLite by default; set TEST_DATABASE_URL to an empty Postgres database to run the same tests on Postgres.
+os.environ.update(DATABASE_URL=os.environ.get("TEST_DATABASE_URL") or f"sqlite:///{_db.name}", GROQ_API_KEY="",
+                  GEMINI_API_KEY="", DEMO_MODE="true", SEED_ON_START="false")
 
 from fastapi.testclient import TestClient  # noqa: E402
 

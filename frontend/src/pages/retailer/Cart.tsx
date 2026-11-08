@@ -163,7 +163,7 @@ export default function Cart({ salesman }: { salesman?: { shop: BundleShop; bund
         {placed.order.free_cases_total > 0 && <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-gold-soft px-3 py-1 text-sm font-semibold text-gold"><Gift className="size-4" aria-hidden />{t("freeCases", { n: placed.order.free_cases_total, unit: placed.order.free_cases_total === 1 ? t("perCase") : t("cases") })}</p>}
         <p className="mt-4 flex items-center justify-center gap-1.5 text-xs text-muted"><MessageCircle className="size-3.5 text-[#25a35a]" aria-hidden />{t("whatsapp")}</p>
         <div className="mt-6 flex justify-center gap-2">
-          <Link to={`/orders/${placed.order.id}`}><Button variant="secondary">{t("orders")}</Button></Link>
+          <Link to={`/orders/${placed.order.id}`}><Button variant="secondary">{t("viewOrder")}</Button></Link>
           <Link to="/"><Button>{t("keepShopping")}</Button></Link>
         </div>
       </Success>

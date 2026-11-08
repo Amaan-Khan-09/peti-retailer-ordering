@@ -18,7 +18,7 @@ class Retailer(Base):
     credit_limit: Mapped[Decimal] = mapped_column(Numeric(12, 2))
     # Outstanding comes from Tally (out of scope); open orders not yet exported are added on top.
     outstanding: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=Decimal("0"))
-    salesman_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", use_alter=True))  # the shop's beat
+    salesman_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", use_alter=True, name="fk_retailers_salesman"))  # the shop's beat; named so Postgres can drop it
 
 
 class User(Base):
