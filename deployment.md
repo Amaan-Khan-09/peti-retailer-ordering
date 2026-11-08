@@ -18,7 +18,8 @@ Sign-in is by mobile number and a one-time code. SMS is mocked: in demo mode the
 **A 5-minute tour**
 
 1. **Retailer `9000000101`:**
-   - "Your usual order" lists the shop's regular products, with when each is due. Tap **Add all**.
+   - The top card shows the shop's available credit. "Your usual order" lists its regular products, with when each is due. Tap **Add all**.
+   - Each product shows its price per case (+GST), MRP and the shop's margin. **ADD** turns into a stepper, and the cart bar shows the running total.
    - Add *Glucose biscuit 75 g* and set it to 9 cases. The cart offers "Add 1 more case to get 1 free"; tap it and the free case appears.
    - Switch to Hindi with **हिं**. Product names, categories, schemes and nudges all change.
    - Place the order and open it to see the WhatsApp updates sent to the shop (mocked).
