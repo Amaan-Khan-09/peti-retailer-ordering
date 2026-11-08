@@ -67,7 +67,7 @@ npm run dev
 Open http://localhost:5173 and use the demo numbers above. To run everything on one port instead, use `npm run build` in `frontend/`; then `uvicorn` serves the built app at http://localhost:8000.
 
 **Tests**
-- Backend, 41 tests: `cd backend && python -m pytest -q`. They cover the scheme engine, the message parser and matcher, the checks on the AI's output, voice and photo handling, access control by role, stock, credit, idempotent orders, suggestions, the loading list and the metrics.
+- Backend, 41 tests: `cd backend && python -m pytest -q`. They cover the scheme engine, the message parser and matcher, the checks on the AI's output, voice and photo handling, access control by role, stock, credit, idempotent orders, suggestions, the loading list and the metrics. They run on SQLite by default; to run the same tests on Postgres, set `TEST_DATABASE_URL` to an empty Postgres database.
 - Frontend, 15 tests: `cd frontend && npm test`. The phone's offline scheme engine is checked against the same case file as the server engine.
 
 Without an AI key, text messages are read by the rule-based reader, and the screen says so. Voice notes and photos show a "type the order" box instead. Everything else works the same.
@@ -80,6 +80,8 @@ Without an AI key, text messages are read by the rule-based reader, and the scre
 - **Health check:** `GET /api/health` returns `{"ok": true, "ai": "configured" | "rules-only"}`.
 
 **Steps:** push the repo to GitHub, then in Render choose **New → Blueprint** and select the repo. Render creates the web service and the database. Enter `GROQ_API_KEY` when asked, then deploy.
+
+**Free plan limits:** on Render's free plan, the web service sleeps after 15 minutes without visitors. The first request after that takes about a minute while it starts; after that, pages load at normal speed. Render's free Postgres database expires after 30 days. To reset the live demo data, run `python -m app.seed --reset` in `backend/` on your own machine, with `DATABASE_URL` set to the database's external connection string from the Render dashboard.
 
 ### Environment variables (names only)
 

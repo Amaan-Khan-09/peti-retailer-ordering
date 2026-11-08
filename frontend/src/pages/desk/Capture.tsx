@@ -190,6 +190,17 @@ function LineCard({ line, decision, options, onChange }: { line: CaptureLine; de
             ))}
           </div>
         </div>
+        {line.alternatives.length > 0 && (
+          <div className="mt-3 flex flex-wrap items-center gap-1.5 text-xs" role="group" aria-label="Best matches">
+            <span className="mr-0.5 font-medium text-muted">Best matches:</span>
+            {[line.suggested, ...line.alternatives].filter(Boolean).map((s) => (
+              <button key={s!.id} onClick={() => onChange({ sku_id: s!.id })} aria-pressed={decision.sku_id === s!.id}
+                className={cx("h-9 rounded-full border px-3 font-semibold transition-colors", decision.sku_id === s!.id ? "border-accent bg-accent-soft text-accent" : "border-line bg-surface text-ink hover:border-accent/50")}>
+                {s!.name}{s!.id === line.suggested?.id ? " (AI pick)" : ""}{s!.stock_cases <= 0 ? " · out of stock" : ""}
+              </button>
+            ))}
+          </div>
+        )}
         <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs">
           {!decision.unit && <span className="text-warn">Ask the shop: case or piece?</span>}
           {picked && <span className="num text-muted">{rupee(picked.case_price)}/case · {picked.units_per_case} pcs · {picked.stock_cases} cases in stock</span>}
