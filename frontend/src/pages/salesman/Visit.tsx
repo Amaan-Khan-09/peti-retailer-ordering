@@ -2,6 +2,7 @@ import { ArrowLeft, ShoppingCart } from "lucide-react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import { CartProvider, useCart } from "../../cart";
 import { rupeeShort } from "../../format";
+import { useLang } from "../../i18n";
 import { useOffline } from "../../offline/store";
 import type { Bundle, BundleShop, Sku } from "../../types";
 import { Meter } from "../../ui";
@@ -29,11 +30,11 @@ function useShop() {
 
 function ShopHeader({ shop }: { shop: BundleShop }) {
   const cart = useCart();
+  const { t } = useLang();
   return (
     <section className="hero relative mb-4 overflow-hidden rounded-3xl p-4 text-white shadow-lift">
-      <div className="pointer-events-none absolute -top-12 -right-10 size-40 rounded-full bg-white/[0.06]" aria-hidden />
       <div className="relative flex items-center gap-3">
-        <Link to="/s" className="grid size-10 shrink-0 place-items-center rounded-xl bg-white/10 ring-1 ring-white/15" aria-label="Back to beat"><ArrowLeft className="size-5" /></Link>
+        <Link to="/s" className="grid size-11 shrink-0 place-items-center rounded-xl bg-white/10 ring-1 ring-white/15" aria-label={t("backToBeat")}><ArrowLeft className="size-5" /></Link>
         <div className="min-w-0 flex-1">
           <p className="truncate text-lg leading-tight font-bold">{shop.shop_name}</p>
           <p className="truncate text-sm text-white/70">{shop.owner_name} · {shop.area}</p>
@@ -45,10 +46,10 @@ function ShopHeader({ shop }: { shop: BundleShop }) {
       </div>
       <div className="relative mt-4 flex items-end justify-between">
         <div>
-          <p className="text-[11px] font-medium tracking-wide text-white/60 uppercase">Credit left</p>
+          <p className="text-[11px] font-medium tracking-wide text-white/60 uppercase">{t("creditLeft")}</p>
           <p className="num text-2xl font-extrabold">{rupeeShort(shop.credit_available)}</p>
         </div>
-        <p className="num pb-1 text-xs text-white/60">of {rupeeShort(shop.credit_limit)}</p>
+        <p className="num pb-1 text-xs text-white/60">{t("ofLimit", { limit: rupeeShort(shop.credit_limit) })}</p>
       </div>
       <Meter value={shop.credit_limit > 0 ? (100 * shop.credit_available) / shop.credit_limit : 0} tone="light" className="relative mt-2" />
     </section>

@@ -8,7 +8,7 @@ import { Badge, Card, ErrorState, Skeleton, STATUS_TONE, cx, useAsync } from "..
 import { Totals } from "./Cart";
 
 export function OrderLines({ order }: { order: Order }) {
-  const { name } = useLang();
+  const { t, name } = useLang();
   return (
     <ul className="divide-y divide-line">
       {order.lines?.map((l) => (
@@ -18,7 +18,7 @@ export function OrderLines({ order }: { order: Order }) {
             <p className="num text-sm text-muted">{l.qty} {l.unit === "CASE" ? "case" : "pc"}{l.qty > 1 && l.unit === "CASE" ? "s" : ""} × {rupee(l.unit_price)}/pc{l.free_cases ? ` · +${l.free_cases} free` : ""}</p>
             {l.scheme_note && <p className="text-xs text-accent">{l.scheme_note}</p>}
           </div>
-          <p className="num shrink-0 font-medium">{rupee(l.total)}</p>
+          <p className="num shrink-0 text-right font-medium">{rupee(l.total)}<span className="block text-[11px] font-normal text-muted">{t("inclGst")}</span></p>
         </li>
       ))}
     </ul>

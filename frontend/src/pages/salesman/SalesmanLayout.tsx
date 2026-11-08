@@ -9,47 +9,47 @@ import { cx } from "../../ui";
 
 export default function SalesmanLayout() {
   const { me, signOut } = useAuth();
-  const { lang, setLang } = useLang();
+  const { t, lang, setLang } = useLang();
   const offline = useOffline();
   const waiting = offline.outbox.filter((e) => e.status === "pending").length;
   const failed = offline.outbox.filter((e) => e.status === "failed").length;
   useEffect(() => { void sync(); }, []);
 
   async function leave() {
-    if (waiting && !window.confirm(`${waiting} order${waiting > 1 ? "s are" : " is"} still waiting to be sent. They stay on this phone. Sign out anyway?`)) return;
+    if (waiting && !window.confirm(t("leaveWaiting", { n: waiting }))) return;
     clearOfflineData();
     await signOut();
   }
 
   const tabs = [
-    { to: "/s", label: "Beat", icon: MapPin, end: true },
-    { to: "/s/outbox", label: "Outbox", icon: Inbox, count: waiting + failed },
+    { to: "/s", label: t("beat"), icon: MapPin, end: true },
+    { to: "/s/outbox", label: t("outbox"), icon: Inbox, count: waiting + failed },
   ];
   // The catalogue's sticky search sits under the header, which grows by the no-signal banner.
   const headerHeight = { "--header-h": offline.online ? "4rem" : "100px" } as CSSProperties;
   return (
     <div className="min-h-dvh pb-24 md:pb-10" style={headerHeight}>
       <header className="sticky top-0 z-30 border-b border-ink/[0.06] bg-surface/85 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-3xl items-center gap-3 px-4">
+        <div className="mx-auto flex h-16 max-w-3xl items-center gap-2 px-4">
           <img src="/icon.svg" alt="" className="size-9 rounded-xl shadow-glow" />
-          <div className="min-w-0 flex-1">
+          <div className="ml-1 min-w-0 flex-1">
             <p className="truncate leading-tight font-bold">{me?.name}</p>
             <p className="flex items-center gap-1.5 text-xs text-muted">
-              <span className={cx("size-1.5 rounded-full", offline.online ? "bg-[#22c55e]" : "bg-warn")} aria-hidden />
-              {offline.syncing ? "Syncing…" : offline.bundle ? `Prices and stock from ${timeAgo(offline.bundle.generated_at)}` : "Not synced yet"}
+              <span className={cx("size-1.5 shrink-0 rounded-full", offline.online ? "bg-[#22c55e]" : "bg-warn")} aria-hidden />
+              <span className="truncate">{offline.syncing ? t("syncing") : offline.bundle ? t("pricesFrom", { time: timeAgo(offline.bundle.generated_at, lang) }) : t("notSynced")}</span>
             </p>
           </div>
-          <button onClick={() => sync()} disabled={offline.syncing} className="grid size-9 place-items-center rounded-full border border-ink/[0.08] bg-surface text-muted shadow-card active:scale-95" aria-label="Sync now">
+          <button onClick={() => sync()} disabled={offline.syncing} className="grid size-11 place-items-center rounded-full border border-ink/[0.08] bg-surface text-muted shadow-card active:scale-95" aria-label={t("syncNow")}>
             <RefreshCw className={cx("size-4", offline.syncing && "animate-spin text-accent")} />
           </button>
-          <button onClick={() => setLang(lang === "en" ? "hi" : "en")} className="flex h-9 items-center gap-1 rounded-full border border-ink/[0.08] bg-surface px-3 text-sm font-bold shadow-card active:scale-95" aria-label="Change language">
+          <button onClick={() => setLang(lang === "en" ? "hi" : "en")} className="flex h-11 items-center gap-1 rounded-full border border-ink/[0.08] bg-surface px-3 text-sm font-bold shadow-card active:scale-95" aria-label="Change language">
             <Languages className="size-3.5 text-accent" aria-hidden />{lang === "en" ? "हिं" : "EN"}
           </button>
-          <button onClick={leave} className="grid size-9 place-items-center rounded-full text-muted hover:bg-ink/5 hover:text-ink" aria-label="Sign out"><LogOut className="size-[18px]" /></button>
+          <button onClick={leave} className="grid size-11 place-items-center rounded-full text-muted hover:bg-ink/5 hover:text-ink" aria-label={t("signOut")}><LogOut className="size-[18px]" /></button>
         </div>
         {!offline.online && (
-          <p className="flex h-9 items-center justify-center gap-2 bg-gradient-to-r from-[#8a4b00] to-warn px-4 text-sm font-medium text-white" role="status">
-            <CloudOff className="size-4 shrink-0" aria-hidden /><span className="truncate">No signal. Orders are saved on this phone{waiting ? ` (${waiting} waiting)` : ""} and sent when signal returns.</span>
+          <p className="flex h-9 items-center justify-center gap-2 bg-warn px-4 text-sm font-medium text-white" role="status">
+            <CloudOff className="size-4 shrink-0" aria-hidden /><span className="truncate">{t("noSignal")}{waiting ? ` · ${t("waitingCount", { n: waiting })}` : ""}</span>
           </p>
         )}
       </header>

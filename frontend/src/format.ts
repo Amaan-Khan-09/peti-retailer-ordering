@@ -4,13 +4,15 @@ const wholeRupees = new Intl.NumberFormat("en-IN", { style: "currency", currency
 export const rupee = (value: number) => rupees.format(value);
 export const rupeeShort = (value: number) => wholeRupees.format(value);
 
-export function timeAgo(iso: string): string {
+export function timeAgo(iso: string, lang: "en" | "hi" = "en"): string {
   const seconds = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
-  if (seconds < 60) return "just now";
-  if (seconds < 3600) return `${Math.floor(seconds / 60)} min ago`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)} h ago`;
+  const hi = lang === "hi";
+  if (seconds < 60) return hi ? "अभी" : "just now";
+  if (seconds < 3600) return `${Math.floor(seconds / 60)} ${hi ? "मिनट पहले" : "min ago"}`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)} ${hi ? "घंटे पहले" : "h ago"}`;
   const days = Math.floor(seconds / 86400);
-  return days === 1 ? "yesterday" : `${days} days ago`;
+  if (days === 1) return hi ? "कल" : "yesterday";
+  return `${days} ${hi ? "दिन पहले" : "days ago"}`;
 }
 
 export const dateTime = (iso: string) =>

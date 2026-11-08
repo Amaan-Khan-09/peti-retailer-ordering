@@ -33,10 +33,10 @@ export default function RetailerLayout() {
               </NavLink>
             ))}
           </nav>
-          <button onClick={() => setLang(lang === "en" ? "hi" : "en")} className="flex h-9 items-center gap-1 rounded-full border border-ink/[0.08] bg-surface px-3 text-sm font-bold shadow-card active:scale-95" aria-label="Change language">
+          <button onClick={() => setLang(lang === "en" ? "hi" : "en")} className="flex h-11 items-center gap-1 rounded-full border border-ink/[0.08] bg-surface px-3 text-sm font-bold shadow-card active:scale-95" aria-label="Change language">
             <Languages className="size-3.5 text-accent" aria-hidden />{lang === "en" ? "हिं" : "EN"}
           </button>
-          <button onClick={signOut} className="grid size-9 place-items-center rounded-full text-muted hover:bg-ink/5 hover:text-ink" aria-label={t("signOut")}><LogOut className="size-[18px]" /></button>
+          <button onClick={signOut} className="grid size-11 place-items-center rounded-full text-muted hover:bg-ink/5 hover:text-ink" aria-label={t("signOut")}><LogOut className="size-[18px]" /></button>
         </div>
       </header>
       <main className="mx-auto max-w-3xl px-4 pt-4"><Outlet /></main>

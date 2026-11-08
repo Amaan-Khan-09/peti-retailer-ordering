@@ -137,15 +137,15 @@ export default function Cart({ salesman }: { salesman?: { shop: BundleShop; bund
     const sent = entry?.status === "sent";
     return (
       <Success tone={sent ? "ok" : "wait"} icon={sent ? <Check className="size-7" strokeWidth={3} aria-hidden /> : <CloudOff className="size-7" aria-hidden />}
-        title={sent ? `Sent as ${entry!.order!.number}` : entry?.status === "failed" ? "Needs attention" : "Saved on this phone"}>
-        <p className="num mt-2 text-muted">{salesman!.shop.shop_name} · <span className="font-semibold text-ink">{rupee(sent ? entry!.order!.total : placed.total)}</span>{sent ? "" : " (estimate)"}</p>
+        title={sent ? t("sentAs", { n: entry!.order!.number }) : entry?.status === "failed" ? t("needsAttention") : t("savedPhone")}>
+        <p className="num mt-2 text-muted">{salesman!.shop.shop_name} · <span className="font-semibold text-ink">{rupee(sent ? entry!.order!.total : placed.total)}</span>{sent ? "" : ` ${t("estimate")}`}</p>
         <p className="mt-3 text-sm text-muted">
-          {sent ? (entry!.order!.status === "CREDIT_HOLD" ? "It is on credit hold; the desk will call the shop." : "The desk will confirm it.")
-            : entry?.status === "failed" ? entry.error : "It will be sent as soon as there is signal. You can carry on with the next shop."}
+          {sent ? (entry!.order!.status === "CREDIT_HOLD" ? t("holdCall") : t("deskConfirm"))
+            : entry?.status === "failed" ? entry.error : t("sentWhenSignal")}
         </p>
         <div className="mt-6 flex justify-center gap-2">
-          <Link to={salesman!.ordersTo}><Button variant="secondary">Outbox</Button></Link>
-          <Link to="/s"><Button>Next shop</Button></Link>
+          <Link to={salesman!.ordersTo}><Button variant="secondary">{t("outbox")}</Button></Link>
+          <Link to="/s"><Button>{t("nextShop")}</Button></Link>
         </div>
       </Success>
     );
@@ -198,7 +198,7 @@ export default function Cart({ salesman }: { salesman?: { shop: BundleShop; bund
         <Card className={cx("p-5 transition-opacity", loading && "opacity-60")}>
           <h2 className="mb-4 text-sm font-bold tracking-wide text-muted uppercase">{t("orderSummary")}</h2>
           {quote ? <Totals quote={quote} /> : <Skeleton rows={2} />}
-          {salesman && <p className="mt-3 text-xs text-muted">Priced on this phone from today's prices and schemes{offline.online ? "" : " (no signal)"}. The desk's system re-checks it when it is sent.</p>}
+          {salesman && <p className="mt-3 text-xs text-muted">{t("pricedOnPhone")}</p>}
           {overCredit && <p className="mt-4 rounded-xl bg-warn-soft px-3 py-2 text-sm text-warn">{t("overCredit", { amount: rupee(available) })}</p>}
           <label htmlFor="note" className="mt-5 block text-sm font-medium text-muted">{t("note")}</label>
           <textarea id="note" maxLength={300} value={note} onChange={(e) => setNote(e.target.value)} rows={2}
@@ -211,7 +211,7 @@ export default function Cart({ salesman }: { salesman?: { shop: BundleShop; bund
           )}
           <div className="fixed inset-x-3 bottom-[76px] z-30 mx-auto max-w-3xl rounded-2xl bg-surface/95 p-2 shadow-lift ring-1 ring-ink/[0.06] backdrop-blur-xl md:static md:mt-4 md:bg-transparent md:p-0 md:shadow-none md:ring-0">
             <Button size="lg" className="h-14 w-full text-base" onClick={place} loading={placing} disabled={!quote || loading || quote.errors.length > 0}>
-              {salesman && !offline.online ? "Save order" : t("placeOrder")} {quote && !loading ? `· ${rupee(quote.total)}` : ""}
+              {salesman && !offline.online ? t("saveOrder") : t("placeOrder")} {quote && !loading ? `· ${rupee(quote.total)}` : ""}
             </Button>
           </div>
         </Card>
@@ -233,7 +233,7 @@ function CartRow({ line }: { line: QuoteLine }) {
             <p className="leading-snug font-bold">{name(line)}</p>
             <p className="num text-xs text-muted">{rupee(line.unit_price)}/{t("perPiece")} · {line.units_per_case} {t("pieces")}/{t("perCase")} · GST {line.gst_rate}%</p>
           </div>
-          <p className="num font-bold">{rupee(line.total)}</p>
+          <p className="num text-right font-bold">{rupee(line.total)}<span className="block text-[11px] font-medium text-muted">{t("inclGst")}</span></p>
         </div>
         <div className="mt-3 flex items-center gap-2">
           <Stepper value={line.qty} onChange={(v) => cart.set(line.sku_id, v)} label={`${line.name} quantity`} />
@@ -245,7 +245,7 @@ function CartRow({ line }: { line: QuoteLine }) {
               </button>
             ))}
           </div>
-          <button onClick={() => cart.set(line.sku_id, 0)} className="ml-auto grid size-10 shrink-0 place-items-center rounded-xl text-faint transition-colors hover:bg-danger-soft hover:text-danger" aria-label={`${t("remove")} ${line.name}`}>
+          <button onClick={() => cart.set(line.sku_id, 0)} className="ml-auto grid size-11 shrink-0 place-items-center rounded-xl text-faint transition-colors hover:bg-danger-soft hover:text-danger" aria-label={`${t("remove")} ${line.name}`}>
             <Trash2 className="size-[18px]" />
           </button>
         </div>

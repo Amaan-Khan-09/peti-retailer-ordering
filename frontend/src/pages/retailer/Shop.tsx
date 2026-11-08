@@ -58,7 +58,7 @@ export function ShopView({ items, loading, error, reload, suggestions, repeat, c
           <Search className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-faint" aria-hidden />
           <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t("search")} aria-label={t("search")}
             className="h-12 w-full rounded-2xl border border-ink/[0.06] bg-surface pr-10 pl-12 shadow-card outline-none transition-shadow placeholder:text-faint focus:border-accent/50 focus:shadow-[0_0_0_4px_rgb(15_122_69/0.12)] [&::-webkit-search-cancel-button]:hidden" />
-          {query && <button onClick={() => setQuery("")} className="absolute top-1/2 right-3 grid size-7 -translate-y-1/2 place-items-center rounded-full bg-ink/5 text-muted" aria-label="Clear search"><X className="size-4" /></button>}
+          {query && <button onClick={() => setQuery("")} className="absolute top-1/2 right-2 grid size-9 -translate-y-1/2 place-items-center rounded-full bg-ink/5 text-muted" aria-label="Clear search"><X className="size-4" /></button>}
         </div>
         <div className="no-scrollbar -mx-4 mt-3 flex gap-2 overflow-x-auto px-4" role="tablist" aria-label="Categories">
           {[null, ...categories].map((c) => {
@@ -66,7 +66,7 @@ export function ShopView({ items, loading, error, reload, suggestions, repeat, c
             const active = category === c;
             return (
               <button key={c ?? "all"} role="tab" aria-selected={active} onClick={() => setCategory(c)}
-                className={cx("flex h-10 shrink-0 items-center gap-1.5 rounded-full border pr-4 pl-3 text-sm font-semibold transition-all active:scale-95",
+                className={cx("flex h-11 shrink-0 items-center gap-1.5 rounded-full border pr-4 pl-3 text-sm font-semibold transition-all active:scale-95",
                   active ? "border-transparent bg-ink text-white shadow-lift" : "border-ink/[0.06] bg-surface text-muted shadow-card hover:text-ink")}>
                 <Icon className={cx("size-4", active ? "text-[#7ee2ad]" : "text-faint")} aria-hidden />
                 {c ? categoryName(c) : t("all")}
@@ -139,7 +139,7 @@ function UsualOrder({ suggestions, byId, onRepeat }: { suggestions: Suggestion[]
                 </div>
                 {!s.in_stock ? <Badge tone="red">{t("outOfStock")}</Badge> : s.due_in_days <= 0 ? <Badge tone="amber">{t("dueNow")}</Badge> : <Badge>{s.due_in_days === 1 ? t("dueTomorrow") : t("dueIn", { n: s.due_in_days })}</Badge>}
                 <button disabled={!s.in_stock || inCart} onClick={() => { haptic(); cart.set(s.sku_id, s.qty, "CASE"); }} aria-label={`${t("add")} ${s.qty} ${s.qty === 1 ? t("perCase") : t("cases")} ${sku.name}`}
-                  className={cx("grid size-9 shrink-0 place-items-center rounded-xl border text-sm font-bold transition-all active:scale-90",
+                  className={cx("grid size-11 shrink-0 place-items-center rounded-xl border text-sm font-bold transition-all active:scale-90",
                     inCart ? "border-transparent bg-accent text-white" : "border-accent/30 bg-accent-soft text-accent disabled:border-line disabled:bg-canvas disabled:text-faint")}>
                   {inCart ? "✓" : <Plus className="size-4" strokeWidth={2.5} />}
                 </button>
@@ -176,7 +176,7 @@ function ProductRow({ sku, index }: { sku: Sku; index: number }) {
           </div>
           <div className="mt-auto flex items-end justify-between gap-2 pt-2">
             <div className="min-w-0 leading-tight">
-              <p><span className="num text-[17px] font-extrabold">{rupee(sku.case_price)}</span><span className="text-xs text-muted">/{t("perCase")}</span></p>
+              <p><span className="num text-[17px] font-extrabold">{rupee(sku.case_price)}</span><span className="text-xs text-muted">/{t("perCase")}</span> <span className="rounded bg-ink/[0.06] px-1 text-[10px] font-bold text-muted">+GST</span></p>
               <p className="num text-xs text-muted">{rupee(sku.price)}/{t("perPiece")} · {t("exclGst")}</p>
               {m && <p className="num mt-0.5 text-xs"><span className="text-faint">MRP {rupeeShort(sku.mrp)}</span> · <span className="font-semibold text-accent">{t("margin", { pct: m.pct })}</span></p>}
             </div>
@@ -203,8 +203,6 @@ function RetailerHero({ items, dueCount }: { items: Sku[]; dueCount: number }) {
   const offers = items.filter((i) => i.schemes.length > 0).length;
   return (
     <section className="hero relative mb-4 overflow-hidden rounded-3xl p-5 text-white shadow-lift" aria-label={t("availableCredit")}>
-      <div className="pointer-events-none absolute -top-10 -right-8 size-40 rounded-full bg-white/[0.06]" aria-hidden />
-      <div className="pointer-events-none absolute -right-16 -bottom-20 size-56 rounded-full bg-white/[0.04]" aria-hidden />
       <p className="text-sm text-white/70">{t("hello")}, {me!.name.split(" ")[0]} ji</p>
       <p className="text-xl font-bold">{shop.shop_name}</p>
       <div className="mt-4 flex items-end justify-between gap-3">
