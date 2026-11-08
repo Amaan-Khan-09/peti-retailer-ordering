@@ -34,7 +34,7 @@ def bundle(user: User = Depends(require_salesman), db: Session = Depends(get_db)
         "skus": [{
             "id": s.id, "code": s.code, "name": s.name, "name_hi": s.name_hi, "brand": s.brand.name,
             "category": s.category, "pack": s.pack_label, "units_per_case": s.units_per_case,
-            "dealer_price": f(s.dealer_price), "gst_rate": f(s.gst_rate), "stock_cases": s.stock_cases,
+            "dealer_price": f(s.dealer_price), "gst_rate": f(s.gst_rate), "mrp": f(s.mrp), "stock_cases": s.stock_cases,
             "schemes": [scheme_json(x) for x in live_schemes(s)],
         } for s in skus],
     }

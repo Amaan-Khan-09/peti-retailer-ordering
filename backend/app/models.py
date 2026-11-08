@@ -62,6 +62,7 @@ class Sku(Base):
     units_per_case: Mapped[int] = mapped_column(Integer)
     dealer_price: Mapped[Decimal] = mapped_column(Numeric(10, 2))  # per piece, excluding GST
     gst_rate: Mapped[Decimal] = mapped_column(Numeric(5, 2))
+    mrp: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=0)  # printed retail price per piece, GST included
     stock_cases: Mapped[int] = mapped_column(Integer)
     keywords: Mapped[str] = mapped_column(String(200), default="")
     brand: Mapped[Brand] = relationship()

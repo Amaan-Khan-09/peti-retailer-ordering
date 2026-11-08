@@ -21,3 +21,10 @@ export const STATUS_LABEL: Record<string, string> = {
 };
 
 export const SOURCE_LABEL: Record<string, string> = { app: "App", ai_capture: "WhatsApp (AI)", salesman: "Salesman", desk_entry: "Typed by desk" };
+
+/** The shop's margin per piece: printed MRP (GST included) less what the piece costs the shop with GST. */
+export function margin(sku: { mrp: number; price: number; gst_rate: number }) {
+  if (!sku.mrp) return null;
+  const perPiece = sku.mrp - sku.price * (1 + sku.gst_rate / 100);
+  return perPiece > 0 ? { perPiece, pct: Math.round((100 * perPiece) / sku.mrp) } : null;
+}

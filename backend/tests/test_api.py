@@ -23,6 +23,7 @@ def test_retailers_see_only_their_own_prices_and_orders(sharma, gupta):
     assert sku_ids(sharma)["SKU-BS-075"]["price"] == 8.00  # special price for this shop
     assert sku_ids(gupta)["SKU-BS-075"]["price"] == 8.10
     assert sku_ids(gupta, retailer_id=1)["SKU-BS-075"]["price"] == 8.10  # retailer_id is ignored for retailers
+    assert sku_ids(sharma)["SKU-BS-075"]["mrp"] == 11.00  # printed MRP is the same for every shop; the margin is not
     sharma_order = sharma.get("/api/orders").json()[0]
     assert gupta.get(f"/api/orders/{sharma_order['id']}").status_code == 404
     assert gupta.get("/api/desk/messages").status_code == 403

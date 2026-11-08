@@ -49,6 +49,13 @@ NAMES_HI = {
     "SKU-TE-500": "चाय पत्ती 500 ग्रा", "SKU-TE-1KG": "चाय पत्ती 1 किलो", "SKU-TD-100": "चाय डस्ट 100 ग्रा",
     "SKU-SP-100": "नहाने का साबुन 100 ग्रा", "SKU-SH-180": "शैम्पू 180 मि.ली.", "SKU-TP-150": "टूथपेस्ट 150 ग्रा",
 }
+
+
+def mrp(price: str, gst: int) -> Decimal:
+    """Invented printed MRP: about a 12% shop margin on the standard price, rounded up to the rupee."""
+    return (D(price) * (100 + gst) / 100 * D("1.14")).quantize(D("1"), rounding="ROUND_CEILING")
+
+
 # sku code, kind, label, buy, free, min cases, discount %
 SCHEMES = [
     ("SKU-BS-075", "FREE_GOODS", "Buy 10 cases get 1 free", 10, 1, None, None),
@@ -106,7 +113,7 @@ def seed(db: Session) -> None:
     skus = {}
     for code, name, brand, category, line, pack, size, upc, price, gst, stock, keywords in SKUS:
         skus[code] = Sku(code=code, name=name, name_hi=NAMES_HI[code], brand=brands[brand], category=category, line=line, pack_label=pack,
-                         size_value=size, units_per_case=upc, dealer_price=D(price), gst_rate=D(gst),
+                         size_value=size, units_per_case=upc, dealer_price=D(price), gst_rate=D(gst), mrp=mrp(price, gst),
                          stock_cases=stock, keywords=keywords)
     db.add_all(skus.values())
     for code, kind, label, buy, free, min_cases, pct in SCHEMES:

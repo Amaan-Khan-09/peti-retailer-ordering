@@ -139,7 +139,7 @@ def sku_json(sku: Sku, price: Decimal) -> dict:
     return {
         "id": sku.id, "code": sku.code, "name": sku.name, "name_hi": sku.name_hi, "brand": sku.brand.name, "category": sku.category,
         "pack": sku.pack_label, "units_per_case": sku.units_per_case, "price": f(price),
-        "case_price": f(price * sku.units_per_case), "gst_rate": f(sku.gst_rate), "stock_cases": sku.stock_cases,
+        "case_price": f(price * sku.units_per_case), "gst_rate": f(sku.gst_rate), "mrp": f(sku.mrp), "stock_cases": sku.stock_cases,
         "stock_status": status,
         "schemes": [scheme_json(s) for s in live_schemes(sku)],
     }

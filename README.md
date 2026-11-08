@@ -2,7 +2,7 @@
 
 Peti is a take-home build for a distributor in Jabalpur that serves 1,800 kirana shops. "Peti" is what shopkeepers call a case.
 
-- **Retailers** order from low-end phones in Hindi or English. They see their own prices, live stock and schemes, and a "usual order" built from their own buying rhythm. The cart prices every scheme as they go.
+- **Retailers** order from low-end phones in Hindi or English. They see their own prices, their margin on the MRP, live stock and schemes, and a "usual order" built from their own buying rhythm. The cart prices every scheme as they go and shows what the schemes save.
 - **Salesmen** take orders at the counter **without signal**. Prices, schemes and credit for the day's beat are kept on the phone, and the same scheme engine runs there. Orders wait in an outbox and are sent, exactly once, when signal returns.
 - **WhatsApp orders** come in as texts, **Hindi voice notes** or **photos of handwritten lists**. AI reads them into a draft that the desk checks. Each line shows the shop's own words, a confidence level and two alternatives. Unclear units are asked about, not guessed, and nothing is ordered until a person confirms it. Desk corrections are remembered for that shop.
 - **The order desk** clears credit holds, exports to Tally (XML or CSV), prints van loading lists, sees shops with no order in 14 days, and tracks the client's three success targets.

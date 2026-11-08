@@ -17,7 +17,7 @@ export interface Scheme {
 
 export interface Sku {
   id: number; code: string; name: string; name_hi: string; brand: string; category: string; pack: string; units_per_case: number;
-  price: number; case_price: number; gst_rate: number; stock_cases: number; stock_status: "IN" | "LOW" | "OUT"; schemes: Scheme[];
+  price: number; case_price: number; gst_rate: number; mrp: number; stock_cases: number; stock_status: "IN" | "LOW" | "OUT"; schemes: Scheme[];
 }
 
 export interface HintData { kind: "FREE_GOODS" | "SLAB_DISCOUNT"; need: number; free_qty?: number; pct?: number }
@@ -87,7 +87,7 @@ export interface LoadingList {
 
 export interface BundleSku {
   id: number; code: string; name: string; name_hi: string; brand: string; category: string; pack: string; units_per_case: number;
-  dealer_price: number; gst_rate: number; stock_cases: number; schemes: Scheme[];
+  dealer_price: number; gst_rate: number; mrp: number; stock_cases: number; schemes: Scheme[];
 }
 export interface BundleShop {
   id: number; code: string; shop_name: string; owner_name: string; area: string; phone: string; credit_limit: number;
